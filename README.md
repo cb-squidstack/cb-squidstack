@@ -18,8 +18,3 @@ We welcome contributions from developers of all skill levels. To get involved:
 1. Review the [Contributing Guide](./CONTRIBUTING.md).
 2. Look for open issues tagged as "good first issue".
 3. Follow our Code of Conduct in all interactions.
-
-## Contact and Support
-For questions or support, you can reach us at [support@cb-squidstack.com](mailto:support@cb-squidstack.com).
-
-Thank you for visiting our organization. We look forward to your involvement and feedback!
