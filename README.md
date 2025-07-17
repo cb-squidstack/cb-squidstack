@@ -1,20 +1,43 @@
-# cb-squidstack Organization
 
-Welcome to the **cb-squidstack** organization on GitHub! This repository serves as an overview and introduction to our organization, providing information about our mission, key projects, and contribution guidelines.
 
-## Mission
-Our mission is to develop and maintain a microservice-based ecosystem that leverages the latest in CI/CD technologies to showcase robust, scalable architecture patterns. We aim to provide an open and collaborative environment for developers to contribute and learn.
+## Project Structure
 
-## Key Projects
-Here’s a glimpse into some of the major projects we host:
+This repository (`cb-squidstack`) serves as the orchestration layer for all SquidStack services.
 
-- **Kraken Auth**: Manages user authentication and session management across the platform.
-- **Squid UI**: Provides an interactive frontend for the ecosystem, integrating services across the stack.
-- **Cuttlefish Orders**: Handles order lifecycle management, integrating with inventory and payment systems.
-- **Urchin Analytics**: Collects and displays system metrics, assisting in data-driven decisions.
+### Directory Layout
+```
+/Users/brown/git_orgs/
+├── cb-squidstack/             # This repo: orchestration, compose, makefile, scripts
+│   ├── docker-compose.yaml
+│   ├── Makefile
+│   ├── README.md
+│   └── scripts/
+│       └── healthcheck.sh
+├── squid-ui/                   # Separate service repos
+├── nautilus-inventory/
+├── manta-delivery/
+├── squid-recommendations/
+├── barnacle-reviews/
+├── cuttlefish-orders/
+├── octopus-payments/
+├── urchin-analytics/
+├── jellyfish-notifications/
+├── kraken-auth/
+├── clam-catalog/
+```
 
-## Contribution Guidelines
-We welcome contributions from developers of all skill levels. To get involved:
-1. Review the [Contributing Guide](./CONTRIBUTING.md).
-2. Look for open issues tagged as "good first issue".
-3. Follow our Code of Conduct in all interactions.
+## Usage
+
+Ensure you are inside the `cb-squidstack` directory to run commands:
+
+```bash
+make up
+make healthcheck
+make down
+```
+
+## Notes
+
+- Each service is in its own repo at the same directory level as `cb-squidstack`.
+- `docker-compose.yaml` references them using `../<service>`.
+- This keeps orchestration clean and separate from app code.

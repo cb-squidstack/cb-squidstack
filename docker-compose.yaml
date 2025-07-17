@@ -1,0 +1,79 @@
+
+version: '3.8'
+
+services:
+  squid-ui:
+    build:
+      context: ../squid-ui
+    ports:
+      - "3000:8080"
+    depends_on:
+      - nautilus-inventory
+    networks:
+      - squidstack-net
+
+  nautilus-inventory:
+    build:
+      context: ../nautilus-inventory
+    ports:
+      - "8081:8080"
+    networks:
+      - squidstack-net
+
+  manta-delivery:
+    build:
+      context: ../manta-delivery
+    networks:
+      - squidstack-net
+
+  squid-recommendations:
+    build:
+      context: ../squid-recommendations
+    networks:
+      - squidstack-net
+
+  barnacle-reviews:
+    build:
+      context: ../barnacle-reviews
+    networks:
+      - squidstack-net
+
+  cuttlefish-orders:
+    build:
+      context: ../cuttlefish-orders
+    networks:
+      - squidstack-net
+
+  octopus-payments:
+    build:
+      context: ../octopus-payments
+    networks:
+      - squidstack-net
+
+  urchin-analytics:
+    build:
+      context: ../urchin-analytics
+    networks:
+      - squidstack-net
+
+  jellyfish-notifications:
+    build:
+      context: ../jellyfish-notifications
+    networks:
+      - squidstack-net
+
+  kraken-auth:
+    build:
+      context: ../kraken-auth
+    networks:
+      - squidstack-net
+
+  clam-catalog:
+    build:
+      context: ../clam-catalog
+    networks:
+      - squidstack-net
+
+networks:
+  squidstack-net:
+    driver: bridge
