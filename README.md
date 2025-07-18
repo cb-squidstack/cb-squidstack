@@ -1,43 +1,27 @@
 
+# cb-squidstack
 
-## Project Structure
+## Purpose
+This repository orchestrates all services within the cb-squidstack system, providing Docker Compose and a Makefile for managing the stack.
 
-This repository (`cb-squidstack`) serves as the orchestration layer for all SquidStack services.
+## Service Dependency Map
 
-### Directory Layout
-```
-/Users/brown/git_orgs/
-├── cb-squidstack/             # This repo: orchestration, compose, makefile, scripts
-│   ├── docker-compose.yaml
-│   ├── Makefile
-│   ├── README.md
-│   └── scripts/
-│       └── healthcheck.sh
-├── squid-ui/                   # Separate service repos
-├── nautilus-inventory/
-├── manta-delivery/
-├── squid-recommendations/
-├── barnacle-reviews/
-├── cuttlefish-orders/
-├── octopus-payments/
-├── urchin-analytics/
-├── jellyfish-notifications/
-├── kraken-auth/
-├── clam-catalog/
-```
+| Service               | Depends On                                        |
+|------------------------|--------------------------------------------------|
+| **squid-ui**           | kraken-auth, cuttlefish-orders, octopus-payments, jellyfish-notifications |
+| **squid-recommendations** | barnacle-reviews, cuttlefish-orders            |
+| **barnacle-reviews**   | kraken-auth                                      |
+| **octopus-payments**   | kraken-auth, cuttlefish-orders                   |
+| **cuttlefish-orders**  | kraken-auth, nautilus-inventory, octopus-payments |
+| **manta-delivery**     | cuttlefish-orders                                 |
+| **nautilus-inventory** | Provides /inventory, /health                     |
 
-## Usage
-
-Ensure you are inside the `cb-squidstack` directory to run commands:
-
+## Running the Stack
 ```bash
 make up
 make healthcheck
-make down
 ```
 
-## Notes
-
-- Each service is in its own repo at the same directory level as `cb-squidstack`.
-- `docker-compose.yaml` references them using `../<service>`.
-- This keeps orchestration clean and separate from app code.
+## Health Endpoints
+- squid-ui: `/squidui`
+- nautilus-inventory: `/inventory`, `/inventory/:productId`, `/health`
