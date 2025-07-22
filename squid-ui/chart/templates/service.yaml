@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: squid-ui
+spec:
+  selector:
+    app: squid-ui
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080

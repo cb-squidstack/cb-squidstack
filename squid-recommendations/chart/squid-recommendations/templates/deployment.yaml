@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: squid-recommendations
+template:
+  metadata:
+    labels:
+      app: squid-recommendations
+  spec:
+    containers:
+      - name: squid-recommendations
+        image: squid-recommendations:latest
+        ports:
+          - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: squid-recommendations
+spec:
+  ports:
+    - port: 80
+      targetPort: 8080
+  selector:
+    app: squid-recommendations

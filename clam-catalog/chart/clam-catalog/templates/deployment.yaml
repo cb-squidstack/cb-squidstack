@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clam-catalog
+template:
+  metadata:
+    labels:
+      app: clam-catalog
+  spec:
+    containers:
+      - name: clam-catalog
+        image: clam-catalog:latest
+        ports:
+          - containerPort: 8080
+        env:
+          - name: SQLITE_DB
+            value: "/data/catalog.sqlite"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clam-catalog
+spec:
+  ports:
+    - port: 80
+      targetPort: 8080
+  selector:
+    app: clam-catalog

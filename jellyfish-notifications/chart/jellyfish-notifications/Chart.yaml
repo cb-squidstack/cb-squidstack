@@ -1,0 +1,7 @@
+apiVersion: v2
+name: jellyfish-notifications
+version: 0.1.0
+
+dependencies:
+  - name: redis
+    repository: "https://charts.bitnami.com/bitnami"

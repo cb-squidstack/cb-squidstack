@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cuttlefish-orders
+template:
+  metadata:
+    labels:
+      app: cuttlefish-orders
+  spec:
+    containers:
+      - name: cuttlefish-orders
+        image: cuttlefish-orders:latest
+        ports:
+          - containerPort: 8080
+        env:
+          - name: DATABASE_URL
+            value: "postgres://user:password@postgresql:5432/dbname?sslmode=disable"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cuttlefish-orders
+spec:
+  ports:
+    - port: 80
+      targetPort: 8080
+  selector:
+    app: cuttlefish-orders

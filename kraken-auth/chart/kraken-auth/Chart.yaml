@@ -1,0 +1,9 @@
+apiVersion: v2
+name: kraken-auth
+version: 0.1.0
+
+dependencies:
+  - name: postgres
+    version: "10.7"
+    repository: "https://charts.bitnami.com/bitnami"
+

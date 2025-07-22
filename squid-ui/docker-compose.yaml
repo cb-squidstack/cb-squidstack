@@ -1,0 +1,8 @@
+version: '3.8'
+
+services:
+  squid-ui:
+    image: gururepservice/cd-squidstack-squid-ui:latest
+    pull_policy: always
+    ports:
+      - "3000:80"
