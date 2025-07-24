@@ -1,7 +1,0 @@
-apiVersion: v2
-name: clam-catalog
-version: 0.1.0
-
-dependencies:
-  - name: sqlite
-    repository: "https://charts.bitnami.com/bitnami"

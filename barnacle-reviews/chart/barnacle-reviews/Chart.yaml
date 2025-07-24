@@ -1,8 +1,0 @@
-apiVersion: v2
-name: barnacle-reviews
-version: 0.1.0
-
-dependencies:
-  - name: postgresql
-    version: "10.7"
-    repository: "https://charts.bitnami.com/bitnami"
