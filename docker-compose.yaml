@@ -1,4 +1,3 @@
-
 version: '3.8'
 
 services:
@@ -6,57 +5,55 @@ services:
     build:
       context: ../squid-ui
     ports:
-      - "3000:80"
-    depends_on:
-      - nautilus-inventory
+      - "3000:80" # host:container
     networks:
       - squidstack-net
 
   nautilus-inventory:
     build:
       context: ../nautilus-inventory
-    networks:
-      - squidstack-net
-
-  manta-delivery:
-    build:
-      context: ../manta-delivery
-    networks:
-      - squidstack-net
-
-  squid-recommendations:
-    build:
-      context: ../squid-recommendations
-    networks:
-      - squidstack-net
-
-  barnacle-reviews:
-    build:
-      context: ../barnacle-reviews
-    networks:
-      - squidstack-net
-
-  cuttlefish-orders:
-    build:
-      context: ../cuttlefish-orders
-    networks:
-      - squidstack-net
-
-  octopus-payments:
-    build:
-      context: ../octopus-payments
-    networks:
-      - squidstack-net
-
-  urchin-analytics:
-    build:
-      context: ../urchin-analytics
+    ports:
+      - "8084:8084"
     networks:
       - squidstack-net
 
   jellyfish-notifications:
     build:
       context: ../jellyfish-notifications
+    ports:
+      - "8083:8083"
+    networks:
+      - squidstack-net
+
+  squid-recommendations:
+    build:
+      context: ../squid-recommendations
+    ports:
+      - "8085:8085"
+    networks:
+      - squidstack-net
+
+  barnacle-reviews:
+    build:
+      context: ../barnacle-reviews
+    ports:
+      - "8086:8080" # unique host port
+    networks:
+      - squidstack-net
+
+  octopus-payments:
+    build:
+      context: ../octopus-payments
+    ports:
+      - "8088:8080" # unique host port
+    networks:
+      - squidstack-net
+
+  urchin-analytics:
+    build:
+      context: ../urchin-analytics
+    ports:
+      - "8090:8080" # unique host port
     networks:
       - squidstack-net
 
@@ -66,13 +63,31 @@ services:
     ports:
       - "8080:8080"
     environment:
-    - JWT_SECRET=footest
+      - JWT_SECRET=footest
     networks:
       - squidstack-net
-  
+
   clam-catalog:
     build:
       context: ../clam-catalog
+    ports:
+      - "8082:8080" # unique host port
+    networks:
+      - squidstack-net
+
+  cuttlefish-orders:
+    build:
+      context: ../cuttlefish-orders
+    ports:
+      - "8089:8080" # unique host port
+    networks:
+      - squidstack-net
+
+  manta-delivery:
+    build:
+      context: ../manta-delivery
+    ports:
+      - "8087:8080" # unique host port
     networks:
       - squidstack-net
 
