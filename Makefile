@@ -1,4 +1,3 @@
-
 PROJECT_NAME = cb-squidstack
 
 up:
@@ -17,7 +16,7 @@ logs:
 
 # Adjust these to match your docker-compose port mappings
 HC_ENDPOINTS = \
-  "squid-ui|http://localhost:3000/" \
+  "squid-ui|http://localhost:3000" \
   "kraken-auth|http://localhost:8080/health" \
   "nautilus-inventory|http://localhost:8084/health" \
   "clam-catalog|http://localhost:8082/health" \
@@ -36,7 +35,7 @@ healthcheck:
 	@set -e; \
 	for e in $(HC_ENDPOINTS); do \
 	  svc=$${e%%|*}; url=$${e#*|}; \
-	  code_time=$$(curl -sS -m 5 -o /dev/null -w "%{http_code} %{time_total}" "$$url" || echo "000 0"); \
+	  code_time=$$(curl -4 -sS -m 5 -o /dev/null -w "%{http_code} %{time_total}" "$$url" || echo "000 0"); \
 	  code=$$(echo $$code_time | awk '{print $$1}'); \
 	  tt=$$(echo $$code_time | awk '{print $$2}'); \
 	  printf "%-24s %-40s %5s  %6.2fs\n" "$$svc" "$$url" "$$code" "$$tt"; \
