@@ -5,21 +5,48 @@ name: Shared Deploy Template for SquidStack Components
 on:
   workflow_call:
     inputs:
-      application_name:       { type: string, required: true }
-      environment_name:       { type: string, required: true }
-      kubeconfig_secret:      { type: string, required: true }
-      docker_repo:            { type: string, required: true }
-      hostname:               { type: string, required: true }
-      tls_secret:             { type: string, required: true }
-      cluster_issuer:         { type: string, required: true }
-      ingress_class:          { type: string, required: true }
-      fm_key_secret_name:     { type: string, required: true }
-      artifact_id:            { type: string, required: true }
-      version:                { type: string, required: true }
-      commit_sha:             { type: string, required: false }
+      application_name:
+        type: string
+        required: true
+      environment_name:
+        type: string
+        required: true
+      kubeconfig_secret:
+        type: string
+        required: true
+      docker_repo:
+        type: string
+        required: true
+      hostname:
+        type: string
+        required: true
+      tls_secret:
+        type: string
+        required: true
+      cluster_issuer:
+        type: string
+        required: true
+      ingress_class:
+        type: string
+        required: true
+      fm_key_secret_name:
+        type: string
+        required: true
+      artifact_id:
+        type: string
+        required: true
+      version:
+        type: string
+        required: true
+      commit_sha:
+        type: string
+        required: false
+
     secrets:
-      git_pat:                { required: true }
-      FM_KEY:                 { required: true }
+      git_pat:
+        required: true
+      FM_KEY:
+        required: true
 
 jobs:
   deploy:
