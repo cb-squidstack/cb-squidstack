@@ -1,0 +1,124 @@
+# .cb/workflows/deploy-template.yml
+name: Shared Deploy Template for SquidStack Components
+
+on:
+  workflow_call:
+    inputs:
+      app_name:              { type: string, required: true }
+      env_name:              { type: string, required: true }
+      kubeconfig_secret:     { type: string, required: true }
+      docker_repo:           { type: string, required: true }
+      hostname:              { type: string, required: true }
+      tls_secret:            { type: string, required: true }
+      cluster_issuer:        { type: string, required: true }
+      ingress_class:         { type: string, required: true }
+      fm_key_secret_name:    { type: string, required: true }
+      artifact_id:           { type: string, required: true }
+      version:               { type: string, required: true }
+      commit_sha:            { type: string, required: false }
+      if_condition:          { type: string, required: false, default: 'true' }
+
+jobs:
+  deploy:
+    if: ${{ fromJSON(inputs.if_condition) }}
+    kind: deploy
+    environment: ${{ inputs.env_name }}
+    needs: [build-container-image, test]
+    env:
+      ENV_NAME: ${{ inputs.env_name }}
+      APP_NAME: ${{ inputs.app_name }}
+      KUBECONFIG_SECRET: ${{ inputs.kubeconfig_secret }}
+      DOCKER_REPO: ${{ inputs.docker_repo }}
+      INGRESS_CLASS: ${{ inputs.ingress_class }}
+      CLUSTER_ISSUER: ${{ inputs.cluster_issuer }}
+      HOSTNAME: ${{ inputs.hostname }}
+      TLS_SECRET: ${{ inputs.tls_secret }}
+    steps:
+      - name: Checkout
+        uses: cloudbees-io/checkout@v1
+
+      - name: Set kubeconfig
+        uses: guru-actions/kubeconfig@1.12
+        with:
+          secname: ${{ env.KUBECONFIG_SECRET }}
+
+      - name: Install helm chart
+        kind: deploy
+        uses: cloudbees-io/helm-install@v1
+        with:
+          chart-location: ${{ cloudbees.workspace }}/chart
+          release-name: ${{ env.APP_NAME }}
+          namespace: ${{ env.ENV_NAME }}
+          values: |
+            featureFlags:
+              enabled: true
+              secretName: feature-mgmt
+              secretKey: ${{ inputs.fm_key_secret_name }}
+              createSecret: true
+              fmKey: ${{ secrets.FM_KEY }}
+            ingress:
+              enabled: true
+              className: "${{ env.INGRESS_CLASS }}"
+              annotations:
+                cert-manager.io/cluster-issuer: "${{ env.CLUSTER_ISSUER }}"
+              hosts:
+                - host: ${{ env.HOSTNAME }}
+                  paths:
+                    - path: /
+                      pathType: Prefix
+              tls:
+                - secretName: ${{ env.TLS_SECRET }}
+                  hosts:
+                    - ${{ env.HOSTNAME }}
+            image:
+              repository: ${{ env.DOCKER_REPO }}
+              tag: ${{ inputs.version }}
+              pullPolicy: Always
+            replicaCount: 1
+            resources:
+              requests: { cpu: 50m, memory: 64Mi }
+              limits:   { cpu: 250m, memory: 256Mi }
+            env:
+              - name: FEATURE_ADMIN_HEALTH
+                value: "true"
+
+      - name: Publish deploy evidence
+        kind: deploy
+        uses: cloudbees-io/publish-evidence-item@v1
+        with:
+          format: MARKDOWN
+          content: |-
+            ## Deployed environment (${{ inputs.env_name }})
+            [Frontend](${{
+              format('https://{0}/', env.HOSTNAME)
+            }})
+            Version: `${{ inputs.version }}`
+            Commit: `${{ inputs.commit_sha || cloudbees.scm.sha }}`
+
+      - name: Shorten SHA for labels
+        id: short-sha
+        uses: docker://alpine:3.20
+        shell: sh
+        env:
+          GIT_SHA: ${{ inputs.commit_sha || cloudbees.scm.sha }}
+        run: |
+          set -eu
+          printf '%s' "$GIT_SHA" | cut -c1-12 > "$CLOUDBEES_OUTPUTS/sha12"
+
+      - name: Shorten Version for labels
+        id: short-ver
+        uses: docker://alpine:3.20
+        shell: sh
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -eu
+          printf '%s' "${VERSION%%-*}" > "$CLOUDBEES_OUTPUTS/ver"
+
+      - name: Register deployed artifact
+        kind: deploy
+        uses: cloudbees-io/register-deployed-artifact@v2
+        with:
+          artifact-id: ${{ inputs.artifact_id }}
+          target-environment: ${{ inputs.env_name }}
+          labels: ver=${{ steps.short-ver.outputs.ver }}, sha=${{ steps.short-sha.outputs.sha12 }}, ns=${{ inputs.env_name }}, rel=${{ inputs.app_name }}
