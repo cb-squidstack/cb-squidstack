@@ -25,7 +25,6 @@ on:
 jobs:
   deploy:
     environment: ${{ inputs.env_name }}
-    needs: [build-container-image, test]
     env:
       ENV_NAME: ${{ inputs.env_name }}
       APP_NAME: ${{ inputs.app_name }}
