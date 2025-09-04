@@ -24,7 +24,6 @@ on:
 
 jobs:
   deploy:
-    kind: deploy
     environment: ${{ inputs.env_name }}
     needs: [build-container-image, test]
     env:
