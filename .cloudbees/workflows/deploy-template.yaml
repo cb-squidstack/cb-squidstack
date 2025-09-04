@@ -5,36 +5,35 @@ name: Shared Deploy Template for SquidStack Components
 on:
   workflow_call:
     inputs:
-      app_name:              { type: string, required: true }
-      env_name:              { type: string, required: true }
-      kubeconfig_secret:     { type: string, required: true }
-      docker_repo:           { type: string, required: true }
-      hostname:              { type: string, required: true }
-      tls_secret:            { type: string, required: true }
-      cluster_issuer:        { type: string, required: true }
-      ingress_class:         { type: string, required: true }
-      fm_key_secret_name:    { type: string, required: true }
-      artifact_id:           { type: string, required: true }
-      version:               { type: string, required: true }
-      commit_sha:            { type: string, required: false }
+      application_name:       { type: string, required: true }
+      environment_name:       { type: string, required: true }
+      kubeconfig_secret:      { type: string, required: true }
+      docker_repo:            { type: string, required: true }
+      hostname:               { type: string, required: true }
+      tls_secret:             { type: string, required: true }
+      cluster_issuer:         { type: string, required: true }
+      ingress_class:          { type: string, required: true }
+      fm_key_secret_name:     { type: string, required: true }
+      artifact_id:            { type: string, required: true }
+      version:                { type: string, required: true }
+      commit_sha:             { type: string, required: false }
     secrets:
-      git_pat:               { required: true }  # PAT for private repo checkout
-      FM_KEY:                { required: true }
-
+      git_pat:                { required: true }
+      FM_KEY:                 { required: true }
 
 jobs:
   deploy:
-    environment: ${{ inputs.env_name }}
+    environment: ${{ inputs.environment_name }}
     env:
-      DEPLOY_ENV_NAME: ${{ inputs.env_name }}
-      DEPLOY_APP_NAME: ${{ inputs.app_name }}
-      DEPLOY_KUBECONFIG_SECRET: ${{ inputs.kubeconfig_secret }}
-      DEPLOY_DOCKER_REPO: ${{ inputs.docker_repo }}
-      DEPLOY_INGRESS_CLASS: ${{ inputs.ingress_class }}
-      DEPLOY_CLUSTER_ISSUER: ${{ inputs.cluster_issuer }}
-      DEPLOY_HOSTNAME: ${{ inputs.hostname }}
-      DEPLOY_TLS_SECRET: ${{ inputs.tls_secret }}
-      DEPLPOY_CLOUDBEES_GIT_TOKEN: ${{ secrets.git_pat }}  # Used for private repo access
+      DEPLOY_APP_NAME:         ${{ inputs.application_name }}
+      DEPLOY_ENV_NAME:         ${{ inputs.environment_name }}
+      DEPLOY_KUBECONFIG:       ${{ inputs.kubeconfig_secret }}
+      DEPLOY_DOCKER_REPO:      ${{ inputs.docker_repo }}
+      DEPLOY_HOSTNAME:         ${{ inputs.hostname }}
+      DEPLOY_TLS_SECRET:       ${{ inputs.tls_secret }}
+      DEPLOY_CLUSTER_ISSUER:   ${{ inputs.cluster_issuer }}
+      DEPLOY_INGRESS_CLASS:    ${{ inputs.ingress_class }}
+      DEPLOY_GIT_PAT:          ${{ secrets.git_pat }}
     steps:
       - name: Checkout
         uses: cloudbees-io/checkout@v1
@@ -42,7 +41,7 @@ jobs:
       - name: Set kubeconfig
         uses: guru-actions/kubeconfig@1.12
         with:
-          secname: ${{ env.DEPLOY_KUBECONFIG_SECRET }}
+          secname: ${{ env.DEPLOY_KUBECONFIG }}
 
       - name: Install helm chart
         kind: deploy
@@ -90,7 +89,7 @@ jobs:
         with:
           format: MARKDOWN
           content: |-
-            ## Deployed environment (${{ inputs.env_name }})
+            ## Deployed environment (${{ inputs.environment_name }})
             [Frontend](${{
               format('https://{0}/', env.DEPLOY_HOSTNAME)
             }})
@@ -122,5 +121,5 @@ jobs:
         uses: cloudbees-io/register-deployed-artifact@v2
         with:
           artifact-id: ${{ inputs.artifact_id }}
-          target-environment: ${{ inputs.env_name }}
-          labels: ver=${{ steps.short-ver.outputs.ver }}, sha=${{ steps.short-sha.outputs.sha12 }}, ns=${{ inputs.env_name }}, rel=${{ inputs.app_name }}
+          target-environment: ${{ inputs.environment_name }}
+          labels: ver=${{ steps.short-ver.outputs.ver }}, sha=${{ steps.short-sha.outputs.sha12 }}, ns=${{ inputs.environment_name }}, rel=${{ inputs.application_name }}
