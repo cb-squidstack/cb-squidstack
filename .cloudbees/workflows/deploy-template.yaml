@@ -51,16 +51,6 @@ on:
 jobs:
   deploy:
     environment: ${{ inputs.environment_name }}
-    env:
-      DEPLOY_APP_NAME:         ${{ inputs.application_name }}
-      DEPLOY_ENV_NAME:         ${{ inputs.environment_name }}
-      DEPLOY_KUBECONFIG:       ${{ inputs.kubeconfig_secret }}
-      DEPLOY_DOCKER_REPO:      ${{ inputs.docker_repo }}
-      DEPLOY_HOSTNAME:         ${{ inputs.hostname }}
-      DEPLOY_TLS_SECRET:       ${{ inputs.tls_secret }}
-      DEPLOY_CLUSTER_ISSUER:   ${{ inputs.cluster_issuer }}
-      DEPLOY_INGRESS_CLASS:    ${{ inputs.ingress_class }}
-      DEPLOY_GIT_PAT:          ${{ secrets.git_pat }}
     steps:
       - name: Checkout
         uses: cloudbees-io/checkout@v1
@@ -68,15 +58,15 @@ jobs:
       - name: Set kubeconfig
         uses: guru-actions/kubeconfig@1.12
         with:
-          secname: ${{ env.DEPLOY_KUBECONFIG }}
+          secname: ${{ inputs.kubeconfig_secret }}
 
       - name: Install helm chart
         kind: deploy
         uses: cloudbees-io/helm-install@v1
         with:
           chart-location: ${{ cloudbees.workspace }}/chart
-          release-name: ${{ env.DEPLOY_APP_NAME }}
-          namespace: ${{ env.DEPLOY_ENV_NAME }}
+          release-name: ${{ inputs.application_name }}
+          namespace: ${{ inputs.environment_name }}
           values: |
             featureFlags:
               enabled: true
@@ -86,20 +76,20 @@ jobs:
               fmKey: ${{ secrets.FM_KEY }}
             ingress:
               enabled: true
-              className: "${{ env.DEPLOY_INGRESS_CLASS }}"
+              className: "${{ inputs.ingress_class }}"
               annotations:
-                cert-manager.io/cluster-issuer: "${{ env.DEPLOY_CLUSTER_ISSUER }}"
+                cert-manager.io/cluster-issuer: "${{ inputs.cluster_issuer }}"
               hosts:
-                - host: ${{ env.DEPLOY_HOSTNAME }}
+                - host: ${{ inputs.hostname }}
                   paths:
                     - path: /
                       pathType: Prefix
               tls:
-                - secretName: ${{ env.DEPLOY_TLS_SECRET }}
+                - secretName: ${{ inputs.tls_secret }}
                   hosts:
-                    - ${{ env.DEPLOY_HOSTNAME }}
+                    - ${{ inputs.hostname }}
             image:
-              repository: ${{ env.DEPLOY_DOCKER_REPO }}
+              repository: ${{ inputs.docker_repo }}
               tag: ${{ inputs.version }}
               pullPolicy: Always
             replicaCount: 1
@@ -117,9 +107,7 @@ jobs:
           format: MARKDOWN
           content: |-
             ## Deployed environment (${{ inputs.environment_name }})
-            [Frontend](${{
-              format('https://{0}/', env.DEPLOY_HOSTNAME)
-            }})
+            [Frontend](https://${{ inputs.hostname }}/)
             Version: `${{ inputs.version }}`
             Commit: `${{ inputs.commit_sha || cloudbees.scm.sha }}`
 
