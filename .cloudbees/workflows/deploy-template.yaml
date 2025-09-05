@@ -11,9 +11,6 @@ on:
       environment_name:
         type: string
         required: true
-      kubeconfig_secret:
-        type: string
-        required: true
       docker_repo:
         type: string
         required: true
@@ -29,9 +26,6 @@ on:
       ingress_class:
         type: string
         required: true
-      fm_key_secret_name:
-        type: string
-        required: true
       artifact_id:
         type: string
         required: true
@@ -43,9 +37,10 @@ on:
         required: false
 
     secrets:
-      git_pat:
+
+      kubeconfig_secret:
         required: true
-      FM_KEY:
+      FM_KEY_SECRET_NAME:
         required: true
 
 jobs:
@@ -71,7 +66,7 @@ jobs:
             featureFlags:
               enabled: true
               secretName: feature-mgmt
-              secretKey: ${{ inputs.fm_key_secret_name }}
+              secretKey: FM_KEY
               createSecret: true
               fmKey: ${{ secrets.FM_KEY }}
             ingress:
