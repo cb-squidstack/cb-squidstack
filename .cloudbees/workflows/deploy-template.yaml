@@ -35,9 +35,36 @@ on:
       commit_sha:
         type: string
         required: false
+      feature_flags_enabled:
+        type: string
+        required: false
+        default: "true"
+      feature_flags_secret_name:
+        type: string
+        required: false
+        default: "feature-mgmt"
+      feature_flags_secret_key:
+        type: string
+        required: false
+        default: "FM_KEY"
+      feature_flags_create_secret:
+        type: string
+        required: false
+        default: "true"
+      image_pull_policy:
+        type: string
+        required: false
+        default: "Always"
+      replica_count:
+        type: string
+        required: false
+        default: "1"
+      feature_admin_health:
+        type: string
+        required: false
+        default: "true"
 
     secrets:
-
       kubeconfig_secret:
         required: true
       FM_KEY_SECRET:
@@ -64,10 +91,10 @@ jobs:
           namespace: ${{ inputs.environment_name }}
           values: |
             featureFlags:
-              enabled: true
-              secretName: feature-mgmt
-              secretKey: FM_KEY
-              createSecret: true
+              enabled: ${{ inputs.feature_flags_enabled }}
+              secretName: ${{ inputs.feature_flags_secret_name }}
+              secretKey: ${{ inputs.feature_flags_secret_key }}
+              createSecret: ${{ inputs.feature_flags_create_secret }}
               fmKey: ${{ secrets.FM_KEY_SECRET }}
             ingress:
               enabled: true
@@ -86,14 +113,14 @@ jobs:
             image:
               repository: ${{ inputs.docker_repo }}
               tag: ${{ inputs.version }}
-              pullPolicy: Always
-            replicaCount: 1
+              pullPolicy: ${{ inputs.image_pull_policy }}
+            replicaCount: ${{ inputs.replica_count }}
             resources:
               requests: { cpu: 50m, memory: 64Mi }
               limits:   { cpu: 250m, memory: 256Mi }
             env:
               - name: FEATURE_ADMIN_HEALTH
-                value: "true"
+                value: ${{ inputs.feature_admin_health }}
 
       - name: Publish deploy evidence
         kind: deploy
