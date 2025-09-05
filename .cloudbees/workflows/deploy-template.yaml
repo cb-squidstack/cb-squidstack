@@ -53,7 +53,7 @@ jobs:
       - name: Set kubeconfig
         uses: guru-actions/kubeconfig@1.12
         with:
-          secname: ${{ inputs.kubeconfig_secret }}
+          secname: ${{ secrets.kubeconfig_secret }}
 
       - name: Install helm chart
         kind: deploy
