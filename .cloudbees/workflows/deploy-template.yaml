@@ -19,13 +19,16 @@ on:
         required: true
       tls_secret:
         type: string
-        required: true
+        required: false
+        default: squid
       cluster_issuer:
         type: string
-        required: true
+        required: false
+        default: "letsencrypt-prod"
       ingress_class:
         type: string
-        required: true
+        required: false
+        default: "nginx"
       artifact_id:
         type: string
         required: true
