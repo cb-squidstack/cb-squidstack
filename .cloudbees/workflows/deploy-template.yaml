@@ -40,7 +40,7 @@ on:
 
       kubeconfig_secret:
         required: true
-      FM_KEY_SECRET_NAME:
+      FM_KEY_SECRET:
         required: true
 
 jobs:
@@ -68,7 +68,7 @@ jobs:
               secretName: feature-mgmt
               secretKey: FM_KEY
               createSecret: true
-              fmKey: ${{ secrets.FM_KEY }}
+              fmKey: ${{ secrets.FM_KEY_SECRET }}
             ingress:
               enabled: true
               className: "${{ inputs.ingress_class }}"
