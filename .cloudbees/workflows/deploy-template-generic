@@ -1,0 +1,191 @@
+apiVersion: automation.cloudbees.io/v1alpha1
+kind: workflow
+name: Shared Deploy Template for SquidStack Components
+
+on:
+  workflow_call:
+    inputs:
+      application_name:       { type: string, required: true }
+      component_name:         { type: string, required: true }
+      environment_name:       { type: string, required: true }
+      docker_repo:            { type: string, required: true }
+      hostname:               { type: string, required: true }
+      artifact_id:            { type: string, required: true }
+      version:                { type: string, required: true }
+      commit_sha:             { type: string, required: false }
+      chart_subpath:          { type: string, required: false, default: "chart" }
+      helm_values:            { type: string, required: false, default: "" }
+      tls_secret:             { type: string, required: false, default: squid }
+      cluster_issuer:         { type: string, required: false, default: "letsencrypt-prod" }
+      ingress_class:          { type: string, required: false, default: "nginx" }
+      image_pull_policy:      { type: string, required: false, default: "Always" }
+      replica_count:          { type: string, required: false, default: "1" }
+      feature_admin_health:   { type: string, required: false, default: "true" }
+      feature_flags_enabled:  { type: string, required: false, default: "true" }
+      feature_flags_secret_name: { type: string, required: false, default: "feature-mgmt" }
+      feature_flags_secret_key:  { type: string, required: false, default: "FM_KEY" }
+      feature_flags_create_secret: { type: string, required: false, default: "true" }
+      uses_liquibase:         { type: string, required: false, default: "false" }
+    secrets:
+      kubeconfig_secret:      { required: true }
+      FM_KEY_SECRET:          { required: false }
+
+jobs:
+  deploy:
+    environment: ${{ inputs.environment_name }}
+    outputs:
+      short_sha: ${{ steps.short-sha.outputs.sha12 }}
+      short_ver: ${{ steps.short-ver.outputs.ver }}
+    steps:
+      - name: Checkout
+        uses: cloudbees-io/checkout@v1
+
+      - name: Set kubeconfig
+        uses: guru-actions/kubeconfig@1.12
+        with:
+          secname: ${{ secrets.kubeconfig_secret }}
+
+      - name: Fetch Helm dependencies
+        uses: docker://alpine/helm:3.14.0
+        shell: sh
+        env:
+          CHART_DIR: ${{ cloudbees.workspace }}/${{ inputs.chart_subpath }}
+        run: |
+          set -eu
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm dependency build "$CHART_DIR"
+
+      - name: Helm template (debug merged values)
+        if: always()
+        continue-on-error: true
+        uses: docker://alpine/helm:3.14.0
+        shell: sh
+        env:
+          CHART_DIR: ${{ cloudbees.workspace }}/${{ inputs.chart_subpath }}
+          NAMESPACE: ${{ inputs.environment_name }}
+        run: |
+          set -eu
+          cat > /tmp/debug-values.yaml <<'YAML'
+          security:
+            createSecret: false
+          liquibase:
+            image: liquibase/liquibase:4.27
+          YAML
+          helm template dbg "$CHART_DIR" \
+            --namespace "$NAMESPACE" \
+            -f /tmp/debug-values.yaml \
+            --debug | sed -n '1,200p'
+
+      - name: Install helm chart
+        kind: deploy
+        uses: cloudbees-io/helm-install@v1
+        with:
+          chart-location: ${{ cloudbees.workspace }}/${{ inputs.chart_subpath }}
+          release-name: ${{ inputs.component_name }}
+          namespace: ${{ inputs.environment_name }}
+          values: ${{ inputs.helm_values }}
+
+      - name: Publish deploy evidence
+        kind: deploy
+        uses: cloudbees-io/publish-evidence-item@v1
+        with:
+          format: MARKDOWN
+          content: |-
+            ## Deployed environment (${{ inputs.environment_name }})
+            [Frontend](https://${{ inputs.hostname }}/)
+            Version: `${{ inputs.version }}`
+            Commit: `${{ inputs.commit_sha || cloudbees.scm.sha }}`
+
+      - name: Collect Liquibase evidence
+        if: ${{ inputs.uses_liquibase == 'true' }}
+        id: lb
+        uses: docker://bitnami/kubectl:1.30
+        shell: sh
+        env:
+          NS: ${{ inputs.environment_name }}
+          RELEASE: ${{ inputs.component_name }}
+        run: |
+          set -eu
+          JOB_NAME="${RELEASE}-lb-evidence-$(date +%s)"
+          cat <<'YAML' | sed "s/{{JOB_NAME}}/${JOB_NAME}/g" | kubectl apply -n "${NS}" -f -
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: {{JOB_NAME}}
+            labels:
+              app.kubernetes.io/name: ${RELEASE}
+              app.kubernetes.io/component: liquibase-evidence
+          spec:
+            backoffLimit: 0
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                  - name: liquibase
+                    image: liquibase/liquibase:4.27
+                    imagePullPolicy: IfNotPresent
+                    workingDir: /liquibase/changelog
+                    command: ["/bin/sh","-lc"]
+                    args:
+                      - |
+                        set -e
+                        echo "== Liquibase history =="
+                        liquibase --changelog-file=changelog-root.xml history || true
+                        echo
+                        echo "== Liquibase status =="
+                        liquibase --changelog-file=changelog-root.xml status || true
+                    volumeMounts:
+                      - name: liquibase-changelog
+                        mountPath: /liquibase/changelog
+                        readOnly: true
+                volumes:
+                  - name: liquibase-changelog
+                    configMap:
+                      name: ${RELEASE}-liquibase
+          YAML
+
+          kubectl wait -n "${NS}" --for=condition=complete "job/${JOB_NAME}" --timeout=300s || true
+          OUT="$(kubectl logs -n "${NS}" "job/${JOB_NAME}" --all-containers=true --tail=-1 2>&1 || true)"
+
+          {
+            echo '```'
+            printf '%s\n' "$OUT"
+            echo '```'
+          } > "$CLOUDBEES_OUTPUTS/EVIDENCE"
+
+          kubectl delete -n "${NS}" job "${JOB_NAME}" --ignore-not-found
+
+      - name: Publish Liquibase evidence
+        if: ${{ inputs.uses_liquibase == 'true' }}
+        uses: cloudbees-io/publish-evidence-item@v1
+        with:
+          content: |
+            ## Liquibase Evidence (env: `${{ inputs.environment_name }}`)
+            ${{ steps.lb.outputs.EVIDENCE }}
+          format: MARKDOWN
+
+      - name: Shorten SHA for labels
+        id: short-sha
+        uses: docker://alpine:3.20
+        shell: sh
+        env:
+          GIT_SHA: ${{ inputs.commit_sha || cloudbees.scm.sha }}
+        run: |
+          printf '%s' "$GIT_SHA" | cut -c1-12 > "$CLOUDBEES_OUTPUTS/sha12"
+
+      - name: Shorten Version for labels
+        id: short-ver
+        uses: docker://alpine:3.20
+        shell: sh
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          printf '%s' "${VERSION%%-*}" > "$CLOUDBEES_OUTPUTS/ver"
+
+      - name: Register deployed artifact
+        kind: deploy
+        uses: cloudbees-io/register-deployed-artifact@v2
+        with:
+          artifact-id: ${{ inputs.artifact_id }}
+          target-environment: ${{ inputs.environment_name }}
+          labels: ver=${{ steps.short-ver.outputs.ver }}, sha=${{ steps.short-sha.outputs.sha12 }}, ns=${{ inputs.environment_name }}, rel=${{ inputs.component_name }}
