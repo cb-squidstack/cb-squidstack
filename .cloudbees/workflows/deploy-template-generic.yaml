@@ -1,6 +1,6 @@
 apiVersion: automation.cloudbees.io/v1alpha1
 kind: workflow
-name: Shared Deploy Template for SquidStack Components
+name: Shared Deploy Template for SquidStack Components (with optional DB/Liquibase)
 
 on:
   workflow_call:
@@ -14,7 +14,6 @@ on:
       version:                { type: string, required: true }
       commit_sha:             { type: string, required: false }
       chart_subpath:          { type: string, required: false, default: "chart" }
-      helm_values:            { type: string, required: false, default: "" }
       tls_secret:             { type: string, required: false, default: squid }
       cluster_issuer:         { type: string, required: false, default: "letsencrypt-prod" }
       ingress_class:          { type: string, required: false, default: "nginx" }
@@ -26,9 +25,14 @@ on:
       feature_flags_secret_key:  { type: string, required: false, default: "FM_KEY" }
       feature_flags_create_secret: { type: string, required: false, default: "true" }
       uses_liquibase:         { type: string, required: false, default: "false" }
+      uses_postgres:          { type: string, required: false, default: "false" }
+      db_username:            { type: string, required: false, default: "squid" }
+      db_name:                { type: string, required: false, default: "squid_db" }
     secrets:
       kubeconfig_secret:      { required: true }
       FM_KEY_SECRET:          { required: false }
+      JWT_SECRET:             { required: false }
+      DB_PASSWORD:            { required: false }
 
 jobs:
   deploy:
@@ -45,37 +49,6 @@ jobs:
         with:
           secname: ${{ secrets.kubeconfig_secret }}
 
-      - name: Fetch Helm dependencies
-        uses: docker://alpine/helm:3.14.0
-        shell: sh
-        env:
-          CHART_DIR: ${{ cloudbees.workspace }}/${{ inputs.chart_subpath }}
-        run: |
-          set -eu
-          helm repo add bitnami https://charts.bitnami.com/bitnami
-          helm dependency build "$CHART_DIR"
-
-      - name: Helm template (debug merged values)
-        if: always()
-        continue-on-error: true
-        uses: docker://alpine/helm:3.14.0
-        shell: sh
-        env:
-          CHART_DIR: ${{ cloudbees.workspace }}/${{ inputs.chart_subpath }}
-          NAMESPACE: ${{ inputs.environment_name }}
-        run: |
-          set -eu
-          cat > /tmp/debug-values.yaml <<'YAML'
-          security:
-            createSecret: false
-          liquibase:
-            image: liquibase/liquibase:4.27
-          YAML
-          helm template dbg "$CHART_DIR" \
-            --namespace "$NAMESPACE" \
-            -f /tmp/debug-values.yaml \
-            --debug | sed -n '1,200p'
-
       - name: Install helm chart
         kind: deploy
         uses: cloudbees-io/helm-install@v1
@@ -83,7 +56,58 @@ jobs:
           chart-location: ${{ cloudbees.workspace }}/${{ inputs.chart_subpath }}
           release-name: ${{ inputs.component_name }}
           namespace: ${{ inputs.environment_name }}
-          values: ${{ inputs.helm_values }}
+          values: |
+            image:
+              repository: ${{ inputs.docker_repo }}
+              tag: ${{ inputs.version }}
+              pullPolicy: ${{ inputs.image_pull_policy }}
+            replicaCount: ${{ inputs.replica_count }}
+            env:
+              - name: FEATURE_ADMIN_HEALTH
+                value: ${{ inputs.feature_admin_health }}
+            ingress:
+              enabled: true
+              className: "${{ inputs.ingress_class }}"
+              annotations:
+                cert-manager.io/cluster-issuer: "${{ inputs.cluster_issuer }}"
+              hosts:
+                - host: ${{ inputs.hostname }}
+                  paths:
+                    - path: /
+                      pathType: Prefix
+              tls:
+                - secretName: ${{ inputs.tls_secret }}
+                  hosts:
+                    - ${{ inputs.hostname }}
+            featureFlags:
+              enabled: ${{ inputs.feature_flags_enabled }}
+              secretName: ${{ inputs.feature_flags_secret_name }}
+              secretKey: ${{ inputs.feature_flags_secret_key }}
+              createSecret: ${{ inputs.feature_flags_create_secret }}
+              fmKey: ${{ secrets.FM_KEY_SECRET }}
+            security:
+              createSecret: true
+              secretName: ${{ inputs.component_name }}-secrets
+              jwtSecret: ${{ secrets.JWT_SECRET }}
+            useExternalDb: ${{ inputs.uses_postgres }}
+            postgresql:
+              enabled: ${{ inputs.uses_postgres }}
+              fullnameOverride: ${{ inputs.component_name }}-postgresql
+              auth:
+                username: ${{ inputs.db_username }}
+                password: ${{ secrets.DB_PASSWORD }}
+                database: ${{ inputs.db_name }}
+              networkPolicy:
+                enabled: false
+              primary:
+                networkPolicy:
+                  enabled: false
+              readReplicas:
+                networkPolicy:
+                  enabled: false
+            liquibase:
+              image: liquibase/liquibase:4.27
+              changelogFile: changelog-root.xml
 
       - name: Publish deploy evidence
         kind: deploy
