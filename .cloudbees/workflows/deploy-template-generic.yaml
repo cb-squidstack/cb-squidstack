@@ -60,6 +60,7 @@ jobs:
             echo "Chart has dependencies, building..."
             pwd
             la -lart
+            helm repo add bitnami https://charts.bitnami.com/bitnami
             helm dependency build
           else
             echo "No dependencies found"
