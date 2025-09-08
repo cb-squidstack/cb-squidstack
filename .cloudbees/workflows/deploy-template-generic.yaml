@@ -145,14 +145,18 @@ jobs:
         env:
           NS: ${{ inputs.environment_name }}
           RELEASE: ${{ inputs.component_name }}
+          DB_HOST: "${{ inputs.component_name }}-postgresql"
+          DB_NAME: "${{ inputs.db_name }}"
+          DB_USER: "${{ inputs.db_username }}"
+          DB_PASSWORD: "${{ secrets.DB_PASSWORD }}"
         run: |
           set -eu
           JOB_NAME="${RELEASE}-lb-evidence-$(date +%s)"
-          cat <<YAML | sed "s/{{JOB_NAME}}/${JOB_NAME}/g" | kubectl apply -n "${NS}" -f -
+          cat <<YAML | envsubst | kubectl apply -n "${NS}" -f -
           apiVersion: batch/v1
           kind: Job
           metadata:
-            name: {{JOB_NAME}}
+            name: ${JOB_NAME}
             labels:
               app.kubernetes.io/name: ${RELEASE}
               app.kubernetes.io/component: liquibase-evidence
@@ -161,6 +165,16 @@ jobs:
             template:
               spec:
                 restartPolicy: Never
+                initContainers:
+                  - name: wait-for-db
+                    image: busybox:1.36
+                    command:
+                      - sh
+                      - -c
+                      - |
+                        echo "Waiting for DB at ${DB_HOST}:5432..."
+                        until nc -z "${DB_HOST}" 5432; do sleep 2; done
+                        echo "Database is ready!"
                 containers:
                   - name: liquibase
                     image: liquibase/liquibase:4.27
@@ -171,10 +185,20 @@ jobs:
                       - |
                         set -e
                         echo "== Liquibase history =="
-                        liquibase --changelog-file=changelog-root.xml history || true
+                        liquibase \
+                          --url="jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}" \
+                          --username="${DB_USER}" \
+                          --password="${DB_PASSWORD}" \
+                          --changelog-file=changelog-root.xml \
+                          history || true
                         echo
                         echo "== Liquibase status =="
-                        liquibase --changelog-file=changelog-root.xml status || true
+                        liquibase \
+                          --url="jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}" \
+                          --username="${DB_USER}" \
+                          --password="${DB_PASSWORD}" \
+                          --changelog-file=changelog-root.xml \
+                          status || true
                     volumeMounts:
                       - name: liquibase-changelog
                         mountPath: /liquibase/changelog
