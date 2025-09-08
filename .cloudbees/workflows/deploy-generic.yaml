@@ -5,30 +5,41 @@ name: Shared Deploy Template for SquidStack Components
 on:
   workflow_call:
     inputs:
-    
-      
-      environment_name:         { type: string, required: true }
-      component_name:           { type: string, required: true }
-      docker_repo:              { type: string, required: true }  
-    
-      uses_postgres:            { type: string, required: false, default: "false" }
-      uses_liquibase:           { type: string, required: false, default: "false" }
-      
-      
-     
-      artifact_id:              { type: string, required: true }
-      version:                  { type: string, required: true }
-      commit_sha:               { type: string, required: true }
-
-    
-      
-     
+      environment_name:
+        type: string
+        required: true
+      component_name:
+        type: string
+        required: true
+      docker_repo:
+        type: string
+        required: true
+      artifact_id:
+        type: string
+        required: true
+      version:
+        type: string
+        required: true
+      commit_sha:
+        type: string
+        required: true
+      uses_postgres:
+        type: string
+        required: false
+        default: "false"
+      uses_liquibase:
+        type: string
+        required: false
+        default: "false"
 
     secrets:
-      kubeconfig_secret:        { required: true }
-      db_password:              { required: true }
-      JWT_SECRET:               { type: string, required: false, default: "foo" } 
-
+      kubeconfig_secret:
+        required: true
+      db_password:
+        required: true
+      JWT_SECRET:
+        required: false
+        
 jobs:
    deployPreProd:
     environment: ${{ inputs.environment_name }}
