@@ -27,7 +27,7 @@ on:
     secrets:
       kubeconfig_secret:        { required: true }
       db_password:              { required: true }
-      jwt_secret:               { type: string, required: false, default: "foo" } }
+      jwt_secret:               { type: string, required: false, default: "foo" } 
 
 jobs:
    deployPreProd:
