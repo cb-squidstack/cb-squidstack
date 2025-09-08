@@ -249,4 +249,4 @@ jobs:
         with:
           artifact-id: ${{ inputs.artifact_id }}
           target-environment: ${{ inputs.environment_name }}
-          labels: ver=${{ inputs.version }}, sha=${{ inputs.commit_sha }}, ns=${{ inputs.environment_name }}, rel=${{ inputs.component_name }}
+          labels: ver=${{ steps.short-ver.outputs.ver }}, sha=${{ steps.short-sha.outputs.sha12 }}, ns=${{ inputs.environment_name }}, rel=${{ inputs.component_name }}
