@@ -92,7 +92,7 @@ jobs:
         uses: cloudbees-io/helm-install@v1
         with:
           chart-location: ${{ cloudbees.workspace }}/chart/${{ inputs.component_name }}
-          release-name: ${{ env.APP_NAME }}
+          release-name: ${{ inputs.component_name }}
           namespace: ${{ inputs.environment_name }}
           values: |
             image:
@@ -140,10 +140,10 @@ jobs:
         shell: sh
         env:
           NS: ${{ inputs.environment_name }}
-          RELEASE: ${{ env.APP_NAME }}
+          RELEASE: ${{ inputs.component_name }}
         run: |
           set -eu
-          JOB_NAME="${{ env.APP_NAME }}-lb-evidence-$(date +%s)"
+          JOB_NAME="${{ inputs.component_name }}-lb-evidence-$(date +%s)"
 
           cat <<'YAML' | sed "s/{{JOB_NAME}}/${JOB_NAME}/g" | kubectl apply -n "${NS}" -f -
           apiVersion: batch/v1
