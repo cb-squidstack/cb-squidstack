@@ -5,43 +5,35 @@ name: Shared Deploy Template for SquidStack Components
 on:
   workflow_call:
     inputs:
-      application_name:       { type: string, required: true }
-      component_name:         { type: string, required: true }
-      environment_name:       { type: string, required: true }
-      docker_repo:            { type: string, required: true }
-      hostname:               { type: string, required: true }
-      artifact_id:            { type: string, required: true }
-      version:                { type: string, required: true }
-      commit_sha:             { type: string, required: false }
-      chart_subpath:          { type: string, required: false, default: "chart" }
-      tls_secret:             { type: string, required: false, default: squid }
-      cluster_issuer:         { type: string, required: false, default: "letsencrypt-prod" }
-      ingress_class:          { type: string, required: false, default: "nginx" }
-      image_pull_policy:      { type: string, required: false, default: "Always" }
-      replica_count:          { type: string, required: false, default: "1" }
-      feature_admin_health:   { type: string, required: false, default: "true" }
-      feature_flags_enabled:  { type: string, required: false, default: "true" }
-      feature_flags_secret_name: { type: string, required: false, default: "feature-mgmt" }
-      feature_flags_secret_key:  { type: string, required: false, default: "FM_KEY" }
-      feature_flags_create_secret: { type: string, required: false, default: "true" }
-      uses_liquibase:         { type: string, required: false, default: "false" }
-      uses_postgres:          { type: string, required: false, default: "false" }
-      db_username:            { type: string, required: false, default: "squid" }
-      db_name:                { type: string, required: false, default: "squid_db" }
+      application_name:         { type: string, required: true }
+      component_name:           { type: string, required: true }
+      environment_name:         { type: string, required: true }
+      docker_repo:              { type: string, required: true }
+      hostname:                 { type: string, required: true }
+      artifact_id:              { type: string, required: true }
+      version:                  { type: string, required: true }
+      commit_sha:               { type: string, required: true }
+      chart_subpath:            { type: string, required: true }
+      uses_postgres:            { type: string, required: false, default: "false" }
+      uses_liquibase:           { type: string, required: false, default: "false" }
+      db_username:              { type: string, required: false, default: "postgres" }
+      db_name:                  { type: string, required: false, default: "postgres" }
+      use_external_db:          { type: string, required: false, default: "false" }
+      external_db_host:         { type: string, required: false }
+      external_db_port:         { type: string, required: false, default: "5432" }
+      external_db_name:         { type: string, required: false }
+      external_db_username:     { type: string, required: false }
     secrets:
-      kubeconfig_secret:      { required: true }
-      FM_KEY_SECRET:          { required: false }
-      JWT_SECRET:             { required: false }
-      DB_PASSWORD:            { required: false }
+      kubeconfig_secret:        { required: true }
+      JWT_SECRET:               { required: false }
+      FM_KEY_SECRET:            { required: false }
+      DB_PASSWORD:              { required: false }
+      EXT_DB_PASSWORD:          { required: false }
 
 jobs:
   deploy:
-    environment: ${{ inputs.environment_name }}
-    outputs:
-      short_sha: ${{ steps.short-sha.outputs.sha12 }}
-      short_ver: ${{ steps.short-ver.outputs.ver }}
     steps:
-      - name: Checkout
+      - name: Checkout source
         uses: cloudbees-io/checkout@v1
 
       - name: Set kubeconfig
@@ -58,198 +50,67 @@ jobs:
           cd "${CLOUDBEES_WORKSPACE}/${{ inputs.chart_subpath }}"
           if grep -q 'dependencies:' Chart.yaml; then
             echo "Chart has dependencies, building..."
-            pwd
-            ls -lart
-            helm repo add bitnami https://charts.bitnami.com/bitnami
             helm dependency build
           else
-            echo "No dependencies found"
+            echo "No dependencies found, skipping build."
           fi
-      
+
       - name: Install helm chart
         kind: deploy
         uses: cloudbees-io/helm-install@v1
         with:
-          chart-location: ${{ cloudbees.workspace }}/${{ inputs.chart_subpath }}
-          release-name: ${{ inputs.component_name }}
+          chart: ${{ inputs.chart_subpath }}
+          release: ${{ inputs.component_name }}-${{ inputs.environment_name }}
           namespace: ${{ inputs.environment_name }}
-          values: |
+          values:
             image:
               repository: ${{ inputs.docker_repo }}
               tag: ${{ inputs.version }}
-              pullPolicy: ${{ inputs.image_pull_policy }}
-            replicaCount: ${{ inputs.replica_count }}
             env:
-              - name: FEATURE_ADMIN_HEALTH
-                value: ${{ inputs.feature_admin_health }}
-            ingress:
-              enabled: true
-              className: "${{ inputs.ingress_class }}"
-              annotations:
-                cert-manager.io/cluster-issuer: "${{ inputs.cluster_issuer }}"
-              hosts:
-                - host: ${{ inputs.hostname }}
-                  paths:
-                    - path: /
-                      pathType: Prefix
-              tls:
-                - secretName: ${{ inputs.tls_secret }}
-                  hosts:
-                    - ${{ inputs.hostname }}
-            featureFlags:
-              enabled: ${{ inputs.feature_flags_enabled }}
-              secretName: ${{ inputs.feature_flags_secret_name }}
-              secretKey: ${{ inputs.feature_flags_secret_key }}
-              createSecret: ${{ inputs.feature_flags_create_secret }}
-              fmKey: ${{ secrets.FM_KEY_SECRET }}
-            security:
-              createSecret: true
-              secretName: ${{ inputs.component_name }}-secrets
-              jwtSecret: ${{ secrets.JWT_SECRET }}
-            useExternalDb: ${{ inputs.uses_postgres }}
+              HOSTNAME: ${{ inputs.hostname }}
+              COMMIT_SHA: ${{ inputs.commit_sha }}
             postgresql:
-              enabled: ${{ inputs.uses_postgres }}
-              fullnameOverride: ${{ inputs.component_name }}-postgresql
+              enabled: ${{ inputs.uses_postgres == 'true' && inputs.use_external_db != 'true' }}
               auth:
                 username: ${{ inputs.db_username }}
                 password: ${{ secrets.DB_PASSWORD }}
-              networkPolicy:
-                enabled: false
-              primary:
-                networkPolicy:
-                  enabled: false
-              readReplicas:
-                networkPolicy:
-                  enabled: false
-            liquibase:
-              image: liquibase/liquibase:4.27
-              changelogFile: changelog-root.xml
+                database: ${{ inputs.db_name }}
+            externalDb:
+              host: ${{ inputs.external_db_host }}
+              port: ${{ inputs.external_db_port }}
+              database: ${{ inputs.external_db_name }}
+              username: ${{ inputs.external_db_username }}
+              password: ${{ secrets.EXT_DB_PASSWORD }}
+            featureFlags:
+              fmKey: ${{ secrets.FM_KEY_SECRET }}
+            secrets:
+              jwtSecret: ${{ secrets.JWT_SECRET }}
 
-      - name: Publish deploy evidence
-        kind: deploy
-        uses: cloudbees-io/publish-evidence-item@v1
-        with:
-          format: MARKDOWN
-          content: |-
-            ## Deployed environment (${{ inputs.environment_name }})
-            [Frontend](https://${{ inputs.hostname }}/)
-            Version: `${{ inputs.version }}`
-            Commit: `${{ inputs.commit_sha || cloudbees.scm.sha }}`
-
-      - name: Collect Liquibase evidence
-        if: ${{ inputs.uses_liquibase == 'true' }}
-        id: lb
-        uses: docker://bitnami/kubectl:1.30
+  collect-liquibase-evidence:
+    if: ${{ inputs.uses_liquibase == 'true' }}
+    needs: [deploy]
+    steps:
+      - name: Run Liquibase evidence collection
+        uses: docker://liquibase/liquibase:4.27
         shell: sh
         env:
-          NS: ${{ inputs.environment_name }}
-          RELEASE: ${{ inputs.component_name }}
-          DB_HOST: "${{ inputs.component_name }}-postgresql"
-          DB_NAME: "${{ inputs.db_name }}"
-          DB_USER: "${{ inputs.db_username }}"
-          DB_PASSWORD: "${{ secrets.DB_PASSWORD }}"
+          LIQUIBASE_URL: jdbc:postgresql://${{ inputs.external_db_host || 'kraken-auth-postgresql' }}:5432/${{ inputs.db_name }}
+          LIQUIBASE_USERNAME: ${{ inputs.external_db_username || inputs.db_username }}
+          LIQUIBASE_PASSWORD: ${{ secrets.EXT_DB_PASSWORD || secrets.DB_PASSWORD }}
         run: |
-          set -eu
-          JOB_NAME="${RELEASE}-lb-evidence-$(date +%s)"
-          cat <<YAML | envsubst | kubectl apply -n "${NS}" -f -
-          apiVersion: batch/v1
-          kind: Job
-          metadata:
-            name: ${JOB_NAME}
-            labels:
-              app.kubernetes.io/name: ${RELEASE}
-              app.kubernetes.io/component: liquibase-evidence
-          spec:
-            backoffLimit: 0
-            template:
-              spec:
-                restartPolicy: Never
-                initContainers:
-                  - name: wait-for-db
-                    image: busybox:1.36
-                    command:
-                      - sh
-                      - -c
-                      - |
-                        echo "Waiting for DB at ${DB_HOST}:5432..."
-                        until nc -z "${DB_HOST}" 5432; do sleep 2; done
-                        echo "Database is ready!"
-                containers:
-                  - name: liquibase
-                    image: liquibase/liquibase:4.27
-                    imagePullPolicy: IfNotPresent
-                    workingDir: /liquibase/changelog
-                    command: ["/bin/sh","-lc"]
-                    args:
-                      - |
-                        set -e
-                        echo "== Liquibase history =="
-                        liquibase \
-                          --url="jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}" \
-                          --username="${DB_USER}" \
-                          --password="${DB_PASSWORD}" \
-                          --changelog-file=changelog-root.xml \
-                          history || true
-                        echo
-                        echo "== Liquibase status =="
-                        liquibase \
-                          --url="jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}" \
-                          --username="${DB_USER}" \
-                          --password="${DB_PASSWORD}" \
-                          --changelog-file=changelog-root.xml \
-                          status || true
-                    volumeMounts:
-                      - name: liquibase-changelog
-                        mountPath: /liquibase/changelog
-                        readOnly: true
-                volumes:
-                  - name: liquibase-changelog
-                    configMap:
-                      name: ${RELEASE}-liquibase
-          YAML
+          liquibase --url=$LIQUIBASE_URL \
+                   --username=$LIQUIBASE_USERNAME \
+                   --password=$LIQUIBASE_PASSWORD \
+                   history
+          liquibase --url=$LIQUIBASE_URL \
+                   --username=$LIQUIBASE_USERNAME \
+                   --password=$LIQUIBASE_PASSWORD \
+                   status
 
-          kubectl wait -n "${NS}" --for=condition=complete "job/${JOB_NAME}" --timeout=300s || true
-          OUT="$(kubectl logs -n "${NS}" "job/${JOB_NAME}" --all-containers=true --tail=-1 2>&1 || true)"
-
-          {
-            echo '```'
-            printf '%s\n' "$OUT"
-            echo '```'
-          } > "$CLOUDBEES_OUTPUTS/EVIDENCE"
-
-          kubectl delete -n "${NS}" job "${JOB_NAME}" --ignore-not-found
-
-      - name: Publish Liquibase evidence
-        if: ${{ inputs.uses_liquibase == 'true' }}
+      - name: Post Liquibase evidence
         uses: cloudbees-io/publish-evidence-item@v1
         with:
           content: |
-            ## Liquibase Evidence (env: `${{ inputs.environment_name }}`)
-            ${{ steps.lb.outputs.EVIDENCE }}
+            ## Liquibase Evidence (env: ${{ inputs.environment_name }})
+            Liquibase history and status collected successfully.
           format: MARKDOWN
-
-      - name: Shorten SHA for labels
-        id: short-sha
-        uses: docker://alpine:3.20
-        shell: sh
-        env:
-          GIT_SHA: ${{ inputs.commit_sha || cloudbees.scm.sha }}
-        run: |
-          printf '%s' "$GIT_SHA" | cut -c1-12 > "$CLOUDBEES_OUTPUTS/sha12"
-
-      - name: Shorten Version for labels
-        id: short-ver
-        uses: docker://alpine:3.20
-        shell: sh
-        env:
-          VERSION: ${{ inputs.version }}
-        run: |
-          printf '%s' "${VERSION%%-*}" > "$CLOUDBEES_OUTPUTS/ver"
-
-      - name: Register deployed artifact
-        kind: deploy
-        uses: cloudbees-io/register-deployed-artifact@v2
-        with:
-          artifact-id: ${{ inputs.artifact_id }}
-          target-environment: ${{ inputs.environment_name }}
-          labels: ver=${{ steps.short-ver.outputs.ver }}, sha=${{ steps.short-sha.outputs.sha12 }}, ns=${{ inputs.environment_name }}, rel=${{ inputs.component_name }}
