@@ -58,6 +58,8 @@ jobs:
           cd "${CLOUDBEES_WORKSPACE}/${{ inputs.chart_subpath }}"
           if grep -q 'dependencies:' Chart.yaml; then
             echo "Chart has dependencies, building..."
+            pwd
+            la -lart
             helm dependency build
           else
             echo "No dependencies found"
