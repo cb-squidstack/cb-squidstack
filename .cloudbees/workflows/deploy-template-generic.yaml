@@ -148,7 +148,7 @@ jobs:
         run: |
           set -eu
           JOB_NAME="${RELEASE}-lb-evidence-$(date +%s)"
-          cat <<'YAML' | sed "s/{{JOB_NAME}}/${JOB_NAME}/g" | kubectl apply -n "${NS}" -f -
+          cat <<YAML | sed "s/{{JOB_NAME}}/${JOB_NAME}/g" | kubectl apply -n "${NS}" -f -
           apiVersion: batch/v1
           kind: Job
           metadata:
