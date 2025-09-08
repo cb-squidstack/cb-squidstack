@@ -17,6 +17,8 @@ on:
 
       uses_postgres:            { type: string, required: false, default: "false" }
       uses_liquibase:           { type: string, required: false, default: "false" }
+      liquibase_image:          { type: string, required: false, default: "liquibase/liquibase:4.27" }
+     
       db_username:              { type: string, required: false, default: "postgres" }
       db_name:                  { type: string, required: false, default: "postgres" }
 
@@ -68,7 +70,9 @@ jobs:
           values: |
             image:
               repository: ${{ inputs.docker_repo }}
-              tag: ${{ inputs.version }}
+              tag: ${{ inputs.version }
+            liquibase:
+              image: ${{ inputs.liquibase_image }}
 
             env:
               HOSTNAME: ${{ inputs.hostname }}
