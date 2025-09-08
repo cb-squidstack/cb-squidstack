@@ -62,7 +62,7 @@ jobs:
         kind: deploy
         uses: cloudbees-io/helm-install@v1
         with:
-          chart: ${{ inputs.chart_subpath }}
+          chart-location: ${{ inputs.chart_subpath }}
           release: ${{ inputs.component_name }}-${{ inputs.environment_name }}
           namespace: ${{ inputs.environment_name }}
           values: |
