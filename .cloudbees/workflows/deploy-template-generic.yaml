@@ -49,6 +49,20 @@ jobs:
         with:
           secname: ${{ secrets.kubeconfig_secret }}
 
+      - name: Build Helm dependencies (if any)
+        id: build-deps
+        uses: docker://alpine/helm:3.14.4
+        shell: sh
+        run: |
+          set -eu
+          cd "${CLOUDBEES_WORKSPACE}/${{ inputs.chart_subpath }}"
+          if grep -q 'dependencies:' Chart.yaml; then
+            echo "Chart has dependencies, building..."
+            helm dependency build
+          else
+            echo "No dependencies found"
+          fi
+      
       - name: Install helm chart
         kind: deploy
         uses: cloudbees-io/helm-install@v1
