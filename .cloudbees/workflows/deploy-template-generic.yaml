@@ -70,7 +70,8 @@ jobs:
           values: |
             image:
               repository: ${{ inputs.docker_repo }}
-              tag: ${{ inputs.version }
+              tag: ${{ inputs.version }}
+              
             liquibase:
               image: ${{ inputs.liquibase_image }}
 
