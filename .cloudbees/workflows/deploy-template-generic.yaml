@@ -81,6 +81,7 @@ jobs:
 
             postgresql:
               enabled: ${{ inputs.uses_postgres == 'true' && inputs.use_external_db != 'true' }}
+              fullnameOverride: ${{ inputs.component_name }}-postgresql  
               auth:
                 username: ${{ inputs.db_username }}
                 password: ${{ secrets.DB_PASSWORD }}
