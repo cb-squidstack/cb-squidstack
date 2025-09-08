@@ -98,7 +98,7 @@ jobs:
             security:
               createSecret: true
               secretName: ${{ inputs.component_name }}-secrets
-              jwtSecret: ${{ secrets.JWT_SECRET }}
+              jwtSecret: ${{ secrets.jwt_secret }}
             # use bundled DB
             useExternalDb: false
 
