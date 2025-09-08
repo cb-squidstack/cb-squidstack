@@ -328,6 +328,7 @@ jobs:
           format: MARKDOWN      
       
       - name: Publish deploy evidence
+        if: ${{ inputs.hostname != 'foo.com' }}
         kind: deploy
         uses: cloudbees-io/publish-evidence-item@v1
         with:
@@ -359,8 +360,7 @@ jobs:
           printf '%s' "${VERSION%%-*}" > "$CLOUDBEES_OUTPUTS/ver"
 
       
-      - name: Register deployed artifact
-        if: ${{ inputs.hostname != 'foo.com' }}
+      - name: Register deployed artifact  
         kind: deploy
         uses: cloudbees-io/register-deployed-artifact@v2
         with:
