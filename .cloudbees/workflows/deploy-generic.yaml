@@ -31,6 +31,24 @@ on:
         type: string
         required: false
         default: "false"
+      hostname:
+        type: string
+        required: false
+        default: "foo.com"
+      ingress_class:
+        type: string
+        required: false
+        default: "nginx"
+      cluster_issuer:
+        type: string
+        required: false
+        default: "letsencrypt-prod"
+      tls_secret:
+        type: string
+        required: false
+        default: "squid"
+      
+      
 
     secrets:
       kubeconfig_secret:
@@ -100,6 +118,20 @@ jobs:
               tag: ${{ inputs.version }}
               pullPolicy: Always
             replicaCount: 1
+            ingress:
+              enabled: ${{ inputs.hostname != 'foo.com' }}
+              className: "${{ inputs.ingress_class }}"
+              annotations:
+                cert-manager.io/cluster-issuer: "${{ inputs.cluster_issuer }}"
+              hosts:
+                - host: ${{ inputs.hostname }}
+                  paths:
+                    - path: /
+                      pathType: Prefix
+              tls:
+                - secretName: ${{ inputs.tls_secret }}
+                  hosts:
+                    - ${{ inputs.hostname }}
             resources:
               requests: { cpu: 50m, memory: 64Mi }
               limits:   { cpu: 250m, memory: 256Mi }
@@ -253,7 +285,18 @@ jobs:
             ## Liquibase Evidence (env: `${{ inputs.environment_name }}`)
             ${{ steps.lb.outputs.EVIDENCE }}
           format: MARKDOWN      
-
+      
+      - name: Publish deploy evidence
+        kind: deploy
+        uses: cloudbees-io/publish-evidence-item@v1
+        with:
+          format: MARKDOWN
+          content: |-
+            ## Deployed environment (${{ inputs.environment_name }})
+            [Frontend](https://${{ inputs.hostname }}/)
+            Version: `${{ inputs.version }}`
+            Commit: `${{ inputs.commit_sha || cloudbees.scm.sha }}`
+      
       - name: Shorten SHA for labels
         id: short-sha
         uses: docker://alpine:3.20
