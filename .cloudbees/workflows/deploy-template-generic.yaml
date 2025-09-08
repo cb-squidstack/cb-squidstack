@@ -85,6 +85,14 @@ jobs:
                 username: ${{ inputs.db_username }}
                 password: ${{ secrets.DB_PASSWORD }}
                 database: ${{ inputs.db_name }}
+              networkPolicy:
+                enabled: false
+              primary:
+                networkPolicy:
+                  enabled: false
+              readReplicas:
+                networkPolicy:
+                  enabled: false 
 
             externalDb:
               host: ${{ inputs.external_db_host }}
