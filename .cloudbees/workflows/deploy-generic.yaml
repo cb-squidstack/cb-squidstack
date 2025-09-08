@@ -83,7 +83,7 @@ on:
       kubeconfig_secret:
         required: true
       db_password:
-        required: true
+        required: false
       JWT_SECRET:
         required: false
         
