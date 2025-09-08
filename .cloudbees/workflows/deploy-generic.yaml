@@ -254,6 +254,27 @@ jobs:
             ${{ steps.lb.outputs.EVIDENCE }}
           format: MARKDOWN      
 
+      - name: Shorten SHA for labels
+        id: short-sha
+        uses: docker://alpine:3.20
+        shell: sh
+        env:
+          GIT_SHA: ${{ inputs.commit_sha || cloudbees.scm.sha }}
+        run: |
+          set -eu
+          printf '%s' "$GIT_SHA" | cut -c1-12 > "$CLOUDBEES_OUTPUTS/sha12"
+
+      - name: Shorten Version for labels
+        id: short-ver
+        uses: docker://alpine:3.20
+        shell: sh
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -eu
+          printf '%s' "${VERSION%%-*}" > "$CLOUDBEES_OUTPUTS/ver"
+
+      
       - name: Register deployed artifact
         kind: deploy
         uses: cloudbees-io/register-deployed-artifact@v2
