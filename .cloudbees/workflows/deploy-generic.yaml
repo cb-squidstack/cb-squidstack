@@ -1,4 +1,4 @@
-apiVersion: automation.cloudbees.io/v1alpha1
+napiVersion: automation.cloudbees.io/v1alpha1
 kind: workflow
 name: Shared Deploy Template for SquidStack Components
 
@@ -10,7 +10,7 @@ on:
       environment_name:         { type: string, required: true }
       component_name:           { type: string, required: true }
       docker_repo:              { type: string, required: true }  
-      docker_tag:               { type: string, required: true }  
+    
       uses_postgres:            { type: string, required: false, default: "false" }
       uses_liquibase:           { type: string, required: false, default: "false" }
       
@@ -86,7 +86,7 @@ jobs:
           values: |
             image:
               repository: ${{ inputs.docker_repo }}
-              tag: ${{ inputs.docker_tag }}
+              tag: ${{ inputs.version }}
               pullPolicy: Always
             replicaCount: 1
             resources:
