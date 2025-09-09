@@ -118,7 +118,6 @@ jobs:
           chart-location: ${{ cloudbees.workspace }}/chart/${{ inputs.component_name }}
           release-name: ${{ inputs.component_name }}
           namespace: ${{ inputs.environment_name }}
-          additional-args: "--debug --atomic"
           values: |
             image:
               repository: ${{ inputs.docker_repo }}
