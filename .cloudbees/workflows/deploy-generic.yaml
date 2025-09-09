@@ -86,7 +86,8 @@ on:
         required: false
       JWT_SECRET:
         required: false
-        
+      FM_KEY_SECRET:
+        required: false
 jobs:
    deploy:
     environment: ${{ inputs.environment_name }}
