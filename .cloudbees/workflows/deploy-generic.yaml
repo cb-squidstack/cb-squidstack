@@ -88,7 +88,7 @@ on:
         required: false
         
 jobs:
-   deployPreProd:
+   deploy:
     environment: ${{ inputs.environment_name }}
   
      
@@ -108,30 +108,6 @@ jobs:
           set -eu
           helm repo add bitnami https://charts.bitnami.com/bitnami
           helm dependency build "${CLOUDBEES_WORKSPACE}/chart/${{ inputs.component_name }}"
-
-      - name: Helm template (debug merged values)
-        if: always()
-        continue-on-error: true
-        uses: docker://alpine/helm:3.14.0
-        shell: sh
-        env:
-          CHART_DIR: ${{ cloudbees.workspace }}/chart/${{ inputs.component_name }}
-          NAMESPACE: ${{ inputs.environment_name }}
-        run: |
-          set -eu
-          cat > /tmp/debug-values.yaml <<'YAML'
-          # keep it minimal; avoid creating JWT secret in debug
-          security:
-            createSecret: false
-          liquibase:
-            image: liquibase/liquibase:4.27
-          YAML
-
-          echo "=== helm template ==="
-          helm template dbg "$CHART_DIR" \
-            --namespace "$NAMESPACE" \
-            -f /tmp/debug-values.yaml \
-            --debug | sed -n '1,200p'
 
 
       - name: Install helm chart
