@@ -7,19 +7,18 @@ It’s designed to showcase microservice patterns, authentication, role-based ac
 
 ## 🌊 Components
 
-| Service                | Type      | Status                | Purpose                                   | Database |
-|-------------------------|-----------|-----------------------|-------------------------------------------|----------|
-| [kraken-auth](../../kraken-auth/README.md) | Service   | ✅ Implemented         | Authentication, JWT issuance, role/profile mgmt | **Yes** (`auth` schema) |
-| [squid-ui](../../squid-ui/README.md)       | Frontend | 🟡 Partially Implemented | React frontend; login & admin screens     | No       |
-| [cuttlefish-orders](../../cuttlefish-orders/README.md) | Service   | Stub (health only)    | Order processing                          | **Yes** (`orders`) |
-| [octopus-payments](../../octopus-payments/README.md)   | Service   | Stub (health only)    | Payment simulation                        | No       |
-| [clam-catalog](../../clam-catalog/README.md)           | Service   | Stub (health only)    | Product catalog                           | **Yes** (`catalog`) |
-| [barnacle-reviews](../../barnacle-reviews/README.md)   | Service   | Stub (health only)    | Product reviews/ratings                   | **Yes** (`reviews`) |
-| [squid-recommendations](../../squid-recommendations/README.md) | Service | Stub (health only)    | Recommendation engine                     | No       |
-| [nautilus-inventory](../../nautilus-inventory/README.md)       | Service | Stub (health only)    | Inventory/stock tracking                  | **Yes** (`inventory`) |
-| [urchin-analytics](../../urchin-analytics/README.md)           | Service | Stub (health only)    | Event collection/analytics                | **Yes** (`analytics`) |
-| [jellyfish-notifications](../../jellyfish-notifications/README.md) | Service | Stub (health only)    | Notifications (email/SMS/in-app)          | No       |
-
+| Service | Type | Status | Purpose | Database |
+|---------|------|--------|---------|----------|
+| [kraken-auth](https://github.com/cb-squidstack/kraken-auth/blob/main/README.md) | Service | ✅ Implemented | Authentication, JWT issuance, role/profile mgmt | **Yes** (`auth` schema) |
+| [squid-ui](https://github.com/cb-squidstack/squid-ui/blob/main/README.md) | Frontend | 🟡 Partially Implemented | React frontend; login & admin screens | No |
+| [cuttlefish-orders](https://github.com/cb-squidstack/cuttlefish-orders/blob/main/README.md) | Service | Stub (health only) | Order processing | **Yes** (`orders`) |
+| [octopus-payments](https://github.com/cb-squidstack/octopus-payments/blob/main/README.md) | Service | Stub (health only) | Payment simulation | No |
+| [clam-catalog](https://github.com/cb-squidstack/clam-catalog/blob/main/README.md) | Service | Stub (health only) | Product catalog | **Yes** (`catalog`) |
+| [barnacle-reviews](https://github.com/cb-squidstack/barnacle-reviews/blob/main/README.md) | Service | Stub (health only) | Product reviews/ratings | **Yes** (`reviews`) |
+| [squid-recommendations](https://github.com/cb-squidstack/squid-recommendations/blob/main/README.md) | Service | Stub (health only) | Recommendation engine | No |
+| [nautilus-inventory](https://github.com/cb-squidstack/nautilus-inventory/blob/main/README.md) | Service | Stub (health only) | Inventory/stock tracking | **Yes** (`inventory`) |
+| [urchin-analytics](https://github.com/cb-squidstack/urchin-analytics/blob/main/README.md) | Service | Stub (health only) | Event collection/analytics | **Yes** (`analytics`) |
+| [jellyfish-notifications](https://github.com/cb-squidstack/jellyfish-notifications/blob/main/README.md) | Service | Stub (health only) | Notifications (email/SMS/in-app) | No |
 ---
 
 ## 🗂️ Current Status
@@ -94,15 +93,14 @@ DB = Yes                                DB = No
 
 Each service has its own README:
 
-- [kraken-auth](../../kraken-auth/README.md)  
-- [squid-ui](../../squid-ui/README.md)  
-- [cuttlefish-orders](../../cuttlefish-orders/README.md)  
-- [octopus-payments](../../octopus-payments/README.md)  
-- [clam-catalog](../../clam-catalog/README.md)  
-- [barnacle-reviews](../../barnacle-reviews/README.md)  
-- [squid-recommendations](../../squid-recommendations/README.md)  
-- [nautilus-inventory](../../nautilus-inventory/README.md)  
-- [urchin-analytics](../../urchin-analytics/README.md)  
-- [jellyfish-notifications](../../jellyfish-notifications/README.md)  
-
+- [kraken-auth](https://github.com/cb-squidstack/kraken-auth/blob/main/README.md)  
+- [squid-ui](https://github.com/cb-squidstack/squid-ui/blob/main/README.md)  
+- [cuttlefish-orders](https://github.com/cb-squidstack/cuttlefish-orders/blob/main/README.md)  
+- [octopus-payments](https://github.com/cb-squidstack/octopus-payments/blob/main/README.md)  
+- [clam-catalog](https://github.com/cb-squidstack/clam-catalog/blob/main/README.md)  
+- [barnacle-reviews](https://github.com/cb-squidstack/barnacle-reviews/blob/main/README.md)  
+- [squid-recommendations](https://github.com/cb-squidstack/squid-recommendations/blob/main/README.md)  
+- [nautilus-inventory](https://github.com/cb-squidstack/nautilus-inventory/blob/main/README.md)  
+- [urchin-analytics](https://github.com/cb-squidstack/urchin-analytics/blob/main/README.md)  
+- [jellyfish-notifications](https://github.com/cb-squidstack/jellyfish-notifications/blob/main/README.md)  
 ---
