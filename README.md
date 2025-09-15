@@ -112,22 +112,65 @@ This is one of the key goals of the project — to **showcase Unify in action**.
 
 ### 📜 Example — workflow calling a template
 
-```yaml
-# .cloudbees/workflows/deploy.yaml
-name: Deploy SquidStack Service
-
-on:
-  push:
-    branches:
-      - main
+```# Reusable template call (same template, different params per environment)
 
 jobs:
-  call-template:
-    uses: cb-squidstack/.cloudbees/workflows/templates/deploy-template.yaml
+  # --- DEV: any non-main branch ---
+  deployDev:
+    if: ${{ cloudbees.scm.branch != 'main' }}
+    environment: squid-dev
+    uses: github.com/cb-squidstack/cb-squidstack/.cloudbees/workflows/deploy-generic.yaml@main
+    needs: [build-container-image, test]
     with:
-      service: kraken-auth
-      environment: dev
-    secrets: inherit
+      component_name: squid-ui
+      environment_name: squid-dev
+      docker_repo: ${{ vars.DOCKER_USER }}/squid-ui
+      artifact_id: ${{ needs.build-container-image.outputs.PRIMARY_ARTIFACT_ID }}
+      version: ${{ needs.build-container-image.outputs.VERSION }}
+      commit_sha: ${{ cloudbees.scm.sha }}
+      hostname: squid-dev.guru-rep.sa-demo.beescloud.com
+      feature_flags_enabled: "true"
+    secrets:
+      kubeconfig_secret: ${{ secrets.kubeconfig_squid_dev }}
+      FM_KEY_SECRET: ${{ secrets.FM_KEY }}
+
+  # --- PREPROD: main branch (gates prod) ---
+  deployPreProd:
+    if: ${{ cloudbees.scm.branch == 'main' }}
+    environment: squid-preprod
+    uses: github.com/cb-squidstack/cb-squidstack/.cloudbees/workflows/deploy-generic.yaml@main
+    needs: [build-container-image, test]
+    with:
+      component_name: squid-ui
+      environment_name: squid-preprod
+      docker_repo: ${{ vars.DOCKER_USER }}/squid-ui
+      artifact_id: ${{ needs.build-container-image.outputs.PRIMARY_ARTIFACT_ID }}
+      version: ${{ needs.build-container-image.outputs.VERSION }}
+      commit_sha: ${{ cloudbees.scm.sha }}
+      hostname: squid-preprod.guru-rep.sa-demo.beescloud.com
+      feature_flags_enabled: "true"
+    secrets:
+      kubeconfig_secret: ${{ secrets.kubeconfig_squid_dev }}
+      FM_KEY_SECRET: ${{ secrets.FM_KEY }}
+
+  # --- PROD: main branch + depends on preprod ---
+  deployProd:
+    if: ${{ cloudbees.scm.branch == 'main' }}
+    environment: squid-prod
+    uses: github.com/cb-squidstack/cb-squidstack/.cloudbees/workflows/deploy-generic.yaml@main
+    needs: [build-container-image, test, deployPreProd]  # ensure preprod first
+    with:
+      component_name: squid-ui
+      environment_name: squid-prod
+      docker_repo: ${{ vars.DOCKER_USER }}/squid-ui
+      artifact_id: ${{ needs.build-container-image.outputs.PRIMARY_ARTIFACT_ID }}
+      version: ${{ needs.build-container-image.outputs.VERSION }}
+      commit_sha: ${{ cloudbees.scm.sha }}
+      hostname: squid.guru-rep.sa-demo.beescloud.com
+      feature_flags_enabled: "true"
+    secrets:
+      kubeconfig_secret: ${{ secrets.kubeconfig_squid_dev }}
+      FM_KEY_SECRET: ${{ secrets.FM_KEY }}
 ```
 
 ---
