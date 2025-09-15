@@ -41,6 +41,7 @@ It’s designed to showcase microservice patterns, authentication, role-based ac
 
 ### ASCII overview (always works)
 
+```
                        ┌───────────────────────────┐
                        │         squid-ui          │
                        │  React frontend (no DB)   │
@@ -67,6 +68,7 @@ DB = Yes                                DB = No
 • barnacle-reviews   (schema: reviews)  • jellyfish-notifications
 • nautilus-inventory (schema: inventory)
 • urchin-analytics   (schema: analytics)
+```
 
 ### Mermaid (optional — GitHub only)
 
@@ -96,30 +98,40 @@ flowchart TB
 
   class AUTH,ORD,CAT,REV,INV,ANA db;
   class PAY,REC,NOT ndb;
+```
 
-🔑 Key Design Principles
-	•	Separation of concerns:
-Each service owns its domain (auth, orders, catalog, reviews, etc).
-	•	Database per service:
-Only backend services own DBs (Postgres schemas).
-squid-ui is stateless and stores only JWT + user snapshot in browser localStorage.
-	•	JWT-based security:
-All service-to-service and frontend-to-service calls are secured with tokens from kraken-auth.
-	•	Feature management:
-Integrated with CloudBees Unify for flags controlling UI + rollout.
+---
 
-⸻
+## 🔑 Key Design Principles
 
-📎 Related Docs
+- **Separation of concerns:**  
+  Each service owns its domain (auth, orders, catalog, reviews, etc).
+
+- **Database per service:**  
+  Only backend services own DBs (Postgres schemas).  
+  `squid-ui` is stateless and stores only JWT + user snapshot in browser localStorage.  
+
+- **JWT-based security:**  
+  All service-to-service and frontend-to-service calls are secured with tokens from `kraken-auth`.
+
+- **Feature management:**  
+  Integrated with **CloudBees Unify** for flags controlling UI + rollout.
+
+---
+
+## 📎 Related Docs
 
 Each service has its own README:
-	•	kraken-auth
-	•	squid-ui
-	•	cuttlefish-orders
-	•	octopus-payments
-	•	clam-catalog
-	•	barnacle-reviews
-	•	squid-recommendations
-	•	nautilus-inventory
-	•	urchin-analytics
-	•	jellyfish-notifications
+
+- [kraken-auth](../kraken-auth/README.md)  
+- [squid-ui](../squid-ui/README.md)  
+- [cuttlefish-orders](../cuttlefish-orders/README.md)  
+- [octopus-payments](../octopus-payments/README.md)  
+- [clam-catalog](../clam-catalog/README.md)  
+- [barnacle-reviews](../barnacle-reviews/README.md)  
+- [squid-recommendations](../squid-recommendations/README.md)  
+- [nautilus-inventory](../nautilus-inventory/README.md)  
+- [urchin-analytics](../urchin-analytics/README.md)  
+- [jellyfish-notifications](../jellyfish-notifications/README.md)  
+
+---
