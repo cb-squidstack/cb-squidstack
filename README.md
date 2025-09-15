@@ -1,76 +1,42 @@
+# 🦑 SquidStack
 
+SquidStack is a demo **microservices application** with a marine theme.  
+It’s designed to showcase microservice patterns, authentication, role-based access, and feature management.
 
-## Project Structure
+---
 
-This repository (`cb-squidstack`) serves as the orchestration layer for all SquidStack services.
+## 🌊 Components
 
-### Directory Layout
-```
-/Users/brown/git_orgs/
-├── cb-squidstack/             # This repo: orchestration, compose, makefile, scripts
-│   ├── docker-compose.yaml
-│   ├── Makefile
-│   ├── README.md
-│   └── scripts/
-│       └── healthcheck.sh
-├── squid-ui/                   # Separate service repos
-├── nautilus-inventory/
-├── manta-delivery/
-├── squid-recommendations/
-├── barnacle-reviews/
-├── cuttlefish-orders/
-├── octopus-payments/
-├── urchin-analytics/
-├── jellyfish-notifications/
-├── kraken-auth/
-├── clam-catalog/
-```
+| Service                | Type      | Status                | Purpose                                   | Database |
+|-------------------------|-----------|-----------------------|-------------------------------------------|----------|
+| [kraken-auth](../kraken-auth/README.md) | Service   | ✅ Implemented         | Authentication, JWT issuance, role/profile mgmt | **Yes** (`auth` schema) |
+| [squid-ui](../squid-ui/README.md)       | Frontend | 🟡 Partially Implemented | React frontend; login & admin screens     | No       |
+| [cuttlefish-orders](../cuttlefish-orders/README.md) | Service   | Stub (health only)    | Order processing                          | **Yes** (`orders`) |
+| [octopus-payments](../octopus-payments/README.md)   | Service   | Stub (health only)    | Payment simulation                        | No       |
+| [clam-catalog](../clam-catalog/README.md)           | Service   | Stub (health only)    | Product catalog                           | **Yes** (`catalog`) |
+| [barnacle-reviews](../barnacle-reviews/README.md)   | Service   | Stub (health only)    | Product reviews/ratings                   | **Yes** (`reviews`) |
+| [squid-recommendations](../squid-recommendations/README.md) | Service | Stub (health only)    | Recommendation engine                     | No       |
+| [nautilus-inventory](../nautilus-inventory/README.md)       | Service | Stub (health only)    | Inventory/stock tracking                  | **Yes** (`inventory`) |
+| [urchin-analytics](../urchin-analytics/README.md)           | Service | Stub (health only)    | Event collection/analytics                | **Yes** (`analytics`) |
+| [jellyfish-notifications](../jellyfish-notifications/README.md) | Service | Stub (health only)    | Notifications (email/SMS/in-app)          | No       |
 
-## Usage
+---
 
-Ensure you are inside the `cb-squidstack` directory to run commands:
+## 🗂️ Current Status
 
-```bash
-make up
-make healthcheck
-make down
-```
+- **Implemented:**  
+  - `kraken-auth` (full DB + JWT + admin APIs)
 
-## Notes
+- **Partially implemented:**  
+  - `squid-ui` (login/auth integrated, admin user view)
 
-- Each service is in its own repo at the same directory level as `cb-squidstack`.
-- `docker-compose.yaml` references them using `../<service>`.
-- This keeps orchestration clean and separate from app code.
+- **Stubs with healthcheck only:**  
+  - `cuttlefish-orders`, `octopus-payments`, `clam-catalog`,  
+    `barnacle-reviews`, `squid-recommendations`, `nautilus-inventory`,  
+    `urchin-analytics`, `jellyfish-notifications`
 
-# SquidStack Architecture
+---
 
-SquidStack is a demo microservices application with marine-themed services.
+## 📐 Architecture
 
-## System Diagram
-
-```mermaid
-flowchart TB
-  UI["squid-ui<br/>React frontend<br/>(no DB)"]
-  AUTH["kraken-auth<br/>Auth/JWT + Profiles<br/>PostgreSQL<br/>schemas: auth, public"]
-
-  UI -->|Login / Admin APIs| AUTH
-
-  subgraph DBYES["Services with DB (planned)"]
-    ORD["cuttlefish-orders<br/>schema: orders"]
-    CAT["clam-catalog<br/>schema: catalog"]
-    REV["barnacle-reviews<br/>schema: reviews"]
-    INV["nautilus-inventory<br/>schema: inventory"]
-    ANA["urchin-analytics<br/>schema: analytics"]
-  end
-
-  subgraph DBNO["Stateless services (planned)"]
-    PAY["octopus-payments"]
-    REC["squid-recommendations"]
-    NOT["jellyfish-notifications"]
-  end
-
-  classDef db fill:#eef7ff,stroke:#88a,stroke-width:1px,color:#111;
-  classDef ndb fill:#f9f9f9,stroke:#bbb,stroke-width:1px,color:#111;
-
-  class AUTH,ORD,CAT,REV,INV,ANA db;
-  class PAY,REC,NOT ndb;
+### ASCII overview (always works)
