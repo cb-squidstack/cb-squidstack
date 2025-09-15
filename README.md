@@ -9,16 +9,16 @@ It’s designed to showcase microservice patterns, authentication, role-based ac
 
 | Service                | Type      | Status                | Purpose                                   | Database |
 |-------------------------|-----------|-----------------------|-------------------------------------------|----------|
-| [kraken-auth](../kraken-auth/README.md) | Service   | ✅ Implemented         | Authentication, JWT issuance, role/profile mgmt | **Yes** (`auth` schema) |
-| [squid-ui](../squid-ui/README.md)       | Frontend | 🟡 Partially Implemented | React frontend; login & admin screens     | No       |
-| [cuttlefish-orders](../cuttlefish-orders/README.md) | Service   | Stub (health only)    | Order processing                          | **Yes** (`orders`) |
-| [octopus-payments](../octopus-payments/README.md)   | Service   | Stub (health only)    | Payment simulation                        | No       |
-| [clam-catalog](../clam-catalog/README.md)           | Service   | Stub (health only)    | Product catalog                           | **Yes** (`catalog`) |
-| [barnacle-reviews](../barnacle-reviews/README.md)   | Service   | Stub (health only)    | Product reviews/ratings                   | **Yes** (`reviews`) |
-| [squid-recommendations](../squid-recommendations/README.md) | Service | Stub (health only)    | Recommendation engine                     | No       |
-| [nautilus-inventory](../nautilus-inventory/README.md)       | Service | Stub (health only)    | Inventory/stock tracking                  | **Yes** (`inventory`) |
-| [urchin-analytics](../urchin-analytics/README.md)           | Service | Stub (health only)    | Event collection/analytics                | **Yes** (`analytics`) |
-| [jellyfish-notifications](../jellyfish-notifications/README.md) | Service | Stub (health only)    | Notifications (email/SMS/in-app)          | No       |
+| [kraken-auth](../../kraken-auth/README.md) | Service   | ✅ Implemented         | Authentication, JWT issuance, role/profile mgmt | **Yes** (`auth` schema) |
+| [squid-ui](../../squid-ui/README.md)       | Frontend | 🟡 Partially Implemented | React frontend; login & admin screens     | No       |
+| [cuttlefish-orders](../../cuttlefish-orders/README.md) | Service   | Stub (health only)    | Order processing                          | **Yes** (`orders`) |
+| [octopus-payments](../../octopus-payments/README.md)   | Service   | Stub (health only)    | Payment simulation                        | No       |
+| [clam-catalog](../../clam-catalog/README.md)           | Service   | Stub (health only)    | Product catalog                           | **Yes** (`catalog`) |
+| [barnacle-reviews](../../barnacle-reviews/README.md)   | Service   | Stub (health only)    | Product reviews/ratings                   | **Yes** (`reviews`) |
+| [squid-recommendations](../../squid-recommendations/README.md) | Service | Stub (health only)    | Recommendation engine                     | No       |
+| [nautilus-inventory](../../nautilus-inventory/README.md)       | Service | Stub (health only)    | Inventory/stock tracking                  | **Yes** (`inventory`) |
+| [urchin-analytics](../../urchin-analytics/README.md)           | Service | Stub (health only)    | Event collection/analytics                | **Yes** (`analytics`) |
+| [jellyfish-notifications](../../jellyfish-notifications/README.md) | Service | Stub (health only)    | Notifications (email/SMS/in-app)          | No       |
 
 ---
 
