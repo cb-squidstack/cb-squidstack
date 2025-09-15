@@ -171,6 +171,7 @@ jobs:
     secrets:
       kubeconfig_secret: ${{ secrets.kubeconfig_squid_dev }}
       FM_KEY_SECRET: ${{ secrets.FM_KEY }}
+```
 
 ```# Same reusable template, but this time we enable Postgres + Liquibase.
 # Branch logic still chooses the environment; params switch on DB rollout.
