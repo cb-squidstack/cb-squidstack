@@ -282,4 +282,31 @@ Each service has its own README:
 - [squid-recommendations](https://github.com/cb-squidstack/squid-recommendations/blob/main/README.md)  
 - [nautilus-inventory](https://github.com/cb-squidstack/nautilus-inventory/blob/main/README.md)  
 - [urchin-analytics](https://github.com/cb-squidstack/urchin-analytics/blob/main/README.md)  
-- [jellyfish-notifications](https://github.com/cb-squidstack/jellyfish-notifications/blob/main/README.md)  
+- [jellyfish-notifications](https://github.com/cb-squidstack/jellyfish-notifications/blob/main/README.md)
+
+
+
+   with:
+-    component_name: squid-ui
+-    environment_name: squid-dev
+-    docker_repo: ${{ vars.DOCKER_USER }}/squid-ui
+-    artifact_id: ${{ needs.build-container-image.outputs.PRIMARY_ARTIFACT_ID }}
+-    version: ${{ needs.build-container-image.outputs.VERSION }}
+-    commit_sha: ${{ cloudbees.scm.sha }}
+-    feature_flags_enabled: "true"
++    component_name: kraken-auth
++    environment_name: squid-dev
++    docker_repo: ${{ vars.DOCKER_USER }}/kraken-auth
++    artifact_id: ${{ needs.build-container-image.outputs.PRIMARY_ARTIFACT_ID }}
++    version: ${{ needs.build-container-image.outputs.VERSION }}
++    commit_sha: ${{ cloudbees.scm.sha }}
++    uses_postgres: "true"      # Enable Postgres
++    uses_liquibase: "true"     # Run Liquibase migrations
+
+   secrets:
+-    kubeconfig_secret: ${{ secrets.kubeconfig_squid_dev }}
+-    FM_KEY_SECRET: ${{ secrets.FM_KEY }}
++    kubeconfig_secret: ${{ secrets.kubeconfig_squid_dev }}
++    JWT_SECRET: ${{ secrets.JWT_SECRET }}
++    db_password: ${{ secrets.KRAKEN_DB_PASSWORD }}
++    FM_KEY_SECRET: ${{ secrets.FM_KEY }}
