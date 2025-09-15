@@ -171,6 +171,74 @@ jobs:
     secrets:
       kubeconfig_secret: ${{ secrets.kubeconfig_squid_dev }}
       FM_KEY_SECRET: ${{ secrets.FM_KEY }}
+
+```# Same reusable template, but this time we enable Postgres + Liquibase.
+# Branch logic still chooses the environment; params switch on DB rollout.
+
+jobs:
+  # --- DEV: any non-main branch ---
+  deployDev:
+    if: ${{ cloudbees.scm.branch != 'main' }}
+    environment: squid-dev
+    uses: github.com/cb-squidstack/cb-squidstack/.cloudbees/workflows/deploy-generic.yaml@main
+    needs: [build-container-image, test]
+    with:
+      component_name: kraken-auth
+      environment_name: squid-dev
+      docker_repo: ${{ vars.DOCKER_USER }}/kraken-auth
+      artifact_id: ${{ needs.build-container-image.outputs.PRIMARY_ARTIFACT_ID }}
+      version: ${{ needs.build-container-image.outputs.VERSION }}
+      commit_sha: ${{ cloudbees.scm.sha }}
+      uses_postgres: "true"      # <— DB on
+      uses_liquibase: "true"     # <— migrations on
+    secrets:
+      kubeconfig_secret: ${{ secrets.kubeconfig_squid_dev }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      db_password: ${{ secrets.KRAKEN_DB_PASSWORD }}
+      FM_KEY_SECRET: ${{ secrets.FM_KEY }}
+
+  # --- PREPROD: main branch (gates prod) ---
+  deployPreProd:
+    if: ${{ cloudbees.scm.branch == 'main' }}
+    environment: squid-preprod
+    uses: github.com/cb-squidstack/cb-squidstack/.cloudbees/workflows/deploy-generic.yaml@main
+    needs: [build-container-image, test]
+    with:
+      component_name: kraken-auth
+      environment_name: squid-preprod
+      docker_repo: ${{ vars.DOCKER_USER }}/kraken-auth
+      artifact_id: ${{ needs.build-container-image.outputs.PRIMARY_ARTIFACT_ID }}
+      version: ${{ needs.build-container-image.outputs.VERSION }}
+      commit_sha: ${{ cloudbees.scm.sha }}
+      uses_postgres: "true"
+      uses_liquibase: "true"
+    secrets:
+      kubeconfig_secret: ${{ secrets.kubeconfig_squid_preprod }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      db_password: ${{ secrets.KRAKEN_DB_PASSWORD }}
+      FM_KEY_SECRET: ${{ secrets.FM_KEY }}
+
+  # --- PROD: main branch + depends on preprod ---
+  deployProd:
+    if: ${{ cloudbees.scm.branch == 'main' }}
+    environment: squid-prod
+    uses: github.com/cb-squidstack/cb-squidstack/.cloudbees/workflows/deploy-generic.yaml@main
+    needs: [build-container-image, test, deployPreProd]
+    with:
+      component_name: kraken-auth
+      environment_name: squid-prod
+      docker_repo: ${{ vars.DOCKER_USER }}/kraken-auth
+      artifact_id: ${{ needs.build-container-image.outputs.PRIMARY_ARTIFACT_ID }}
+      version: ${{ needs.build-container-image.outputs.VERSION }}
+      commit_sha: ${{ cloudbees.scm.sha }}
+      uses_postgres: "true"
+      uses_liquibase: "true"
+    secrets:
+      kubeconfig_secret: ${{ secrets.kubeconfig_squid_prod }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      db_password: ${{ secrets.KRAKEN_DB_PASSWORD }}
+      FM_KEY_SECRET: ${{ secrets.FM_KEY }}
+
 ```
 
 ---
