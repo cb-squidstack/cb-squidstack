@@ -1,7 +1,9 @@
 # 🦑 SquidStack
 
 SquidStack is a demo **microservices application** with a marine theme.  
-It’s designed to showcase microservice patterns, authentication, role-based access, and feature management.
+It’s designed to showcase microservice patterns, authentication, role-based access, feature management, **and how we embrace CloudBees Unify**.
+
+👉 [Jump to CloudBees Unify Integration](#-cloudbees-unify-integration)
 
 ---
 
@@ -19,6 +21,7 @@ It’s designed to showcase microservice patterns, authentication, role-based ac
 | [nautilus-inventory](https://github.com/cb-squidstack/nautilus-inventory/blob/main/README.md) | Service | Stub (health only) | Inventory/stock tracking | **Yes** (`inventory`) |
 | [urchin-analytics](https://github.com/cb-squidstack/urchin-analytics/blob/main/README.md) | Service | Stub (health only) | Event collection/analytics | **Yes** (`analytics`) |
 | [jellyfish-notifications](https://github.com/cb-squidstack/jellyfish-notifications/blob/main/README.md) | Service | Stub (health only) | Notifications (email/SMS/in-app) | No |
+
 ---
 
 ## 🗂️ Current Status
@@ -69,7 +72,6 @@ DB = Yes                                DB = No
 • urchin-analytics   (schema: analytics)
 ```
 
-
 ---
 
 ## 🔑 Key Design Principles
@@ -89,6 +91,72 @@ DB = Yes                                DB = No
 
 ---
 
+## 🚀 CloudBees Unify Integration
+
+SquidStack uses **CloudBees Unify** to drive consistent CI/CD workflows across services.  
+This is one of the key goals of the project — to **showcase Unify in action**.
+
+### 🔑 How we use Unify
+
+- **Workflow templates**:  
+  Shared templates used by `squid-ui` and `kraken-auth` (and future services).  
+  Define standard jobs for build, test, deploy, and Liquibase rollout.
+
+- **Actions**:  
+  Standard CloudBees actions are called for container builds, Kubernetes deploys, and database migrations.
+
+- **Secrets & Parameters**:  
+  Workflows use secrets and params to conditionally enable steps (e.g., Liquibase rollout for DB services, skipped for frontend-only).
+
+---
+
+### 📜 Example — workflow calling a template
+
+```yaml
+# .cloudbees/workflows/deploy.yaml
+name: Deploy SquidStack Service
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  call-template:
+    uses: cb-squidstack/.cloudbees/workflows/templates/deploy-template.yaml
+    with:
+      service: kraken-auth
+      environment: dev
+    secrets: inherit
+```
+
+---
+
+### 📸 Evidence (placeholders)
+
+- **Workflow overview in CloudBees Unify**  
+  ![screenshot-workflow](docs/images/unify-workflow.png)
+
+- **Code snippet using a workflow template**  
+  ![screenshot-template-call](docs/images/unify-template-call.png)
+
+- **Frontend deployment (squid-ui)**  
+  ![screenshot-frontend-deploy](docs/images/unify-frontend-deploy.png)
+
+- **Liquibase rollout (kraken-auth)**  
+  ![screenshot-liquibase-rollout](docs/images/unify-liquibase.png)
+
+---
+
+### ✅ Benefits
+
+- **Consistency**: All services follow the same CI/CD pattern.  
+- **Flexibility**: Params control optional stages (e.g., skip DB rollout for UI).  
+- **Security**: Secrets managed centrally in Unify.  
+- **Traceability**: Deployments & rollouts visible in Unify dashboards.  
+
+---
+
 ## 📎 Related Docs
 
 Each service has its own README:
@@ -103,4 +171,3 @@ Each service has its own README:
 - [nautilus-inventory](https://github.com/cb-squidstack/nautilus-inventory/blob/main/README.md)  
 - [urchin-analytics](https://github.com/cb-squidstack/urchin-analytics/blob/main/README.md)  
 - [jellyfish-notifications](https://github.com/cb-squidstack/jellyfish-notifications/blob/main/README.md)  
----
