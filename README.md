@@ -94,15 +94,15 @@ DB = Yes                                DB = No
 
 Each service has its own README:
 
-- [kraken-auth](../kraken-auth/README.md)  
-- [squid-ui](../squid-ui/README.md)  
-- [cuttlefish-orders](../cuttlefish-orders/README.md)  
-- [octopus-payments](../octopus-payments/README.md)  
-- [clam-catalog](../clam-catalog/README.md)  
-- [barnacle-reviews](../barnacle-reviews/README.md)  
-- [squid-recommendations](../squid-recommendations/README.md)  
-- [nautilus-inventory](../nautilus-inventory/README.md)  
-- [urchin-analytics](../urchin-analytics/README.md)  
-- [jellyfish-notifications](../jellyfish-notifications/README.md)  
+- [kraken-auth](../../kraken-auth/README.md)  
+- [squid-ui](../../squid-ui/README.md)  
+- [cuttlefish-orders](../../cuttlefish-orders/README.md)  
+- [octopus-payments](../../octopus-payments/README.md)  
+- [clam-catalog](../../clam-catalog/README.md)  
+- [barnacle-reviews](../../barnacle-reviews/README.md)  
+- [squid-recommendations](../../squid-recommendations/README.md)  
+- [nautilus-inventory](../../nautilus-inventory/README.md)  
+- [urchin-analytics](../../urchin-analytics/README.md)  
+- [jellyfish-notifications](../../jellyfish-notifications/README.md)  
 
 ---
