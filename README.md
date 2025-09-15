@@ -258,7 +258,7 @@ jobs:
   ![screenshot-frontend-deploy](docs/images/squdfrontend-flagsoff.png)
 
 - **Frontend deployment (squid-ui) flags mainly on**  
-  ![screenshot-frontend-deploy](docs/images/squidfrontend-flags-on.png)
+  ![screenshot-frontend-deploy](docs/images/squidfrontend-flags-on-high.png)
 
 ---
 
