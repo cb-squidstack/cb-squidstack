@@ -70,35 +70,6 @@ DB = Yes                                DB = No
 • urchin-analytics   (schema: analytics)
 ```
 
-### Mermaid (optional — GitHub only)
-
-```mermaid
-flowchart TB
-  UI["squid-ui<br/>React frontend<br/>(no DB)"]
-  AUTH["kraken-auth<br/>Auth/JWT + Profiles<br/>PostgreSQL<br/>schemas: auth, public"]
-
-  UI -->|Login / Admin APIs| AUTH
-
-  subgraph DBYES["Services with DB (planned)"]
-    ORD["cuttlefish-orders<br/>schema: orders"]
-    CAT["clam-catalog<br/>schema: catalog"]
-    REV["barnacle-reviews<br/>schema: reviews"]
-    INV["nautilus-inventory<br/>schema: inventory"]
-    ANA["urchin-analytics<br/>schema: analytics"]
-  end
-
-  subgraph DBNO["Stateless services (planned)"]
-    PAY["octopus-payments"]
-    REC["squid-recommendations"]
-    NOT["jellyfish-notifications"]
-  end
-
-  classDef db fill:#eef7ff,stroke:#88a,stroke-width:1px,color:#111;
-  classDef ndb fill:#f9f9f9,stroke:#bbb,stroke-width:1px,color:#111;
-
-  class AUTH,ORD,CAT,REV,INV,ANA db;
-  class PAY,REC,NOT ndb;
-```
 
 ---
 
