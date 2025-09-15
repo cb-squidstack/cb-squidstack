@@ -246,19 +246,19 @@ jobs:
 
 ---
 
-### 📸 Evidence (placeholders)
+### 📸 Screenshots
 
 - **Workflow overview in CloudBees Unify**  
-  ![screenshot-workflow](docs/images/unify-workflow.png)
+  ![screenshot-workflow](docs/images/workflowoverview.png)
 
 - **Code snippet using a workflow template**  
-  ![screenshot-template-call](docs/images/unify-template-call.png)
+ ![screenshot-workflow](docs/images/workflowsnippet.png)
 
-- **Frontend deployment (squid-ui)**  
-  ![screenshot-frontend-deploy](docs/images/unify-frontend-deploy.png)
+- **Frontend deployment (squid-ui) flags mainly off**  
+  ![screenshot-frontend-deploy](docs/images/squdfrontend-flagsoff.png)
 
-- **Liquibase rollout (kraken-auth)**  
-  ![screenshot-liquibase-rollout](docs/images/unify-liquibase.png)
+- **Frontend deployment (squid-ui) flags mainly on**  
+  ![screenshot-frontend-deploy](docs/images/squidfrontend-flags-on.png)
 
 ---
 
