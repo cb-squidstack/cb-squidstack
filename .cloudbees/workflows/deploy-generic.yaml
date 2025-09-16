@@ -173,7 +173,7 @@ jobs:
 
             featureFlags:
               enabled: ${{ inputs.feature_flags_enabled }}
-              secretName: ${{ inputs.feature_flags_secret_name }}
+              secretName: ${{ inputs.component_name }}-fmkey
               secretKey: ${{ inputs.feature_flags_secret_key }}
               createSecret: ${{ inputs.feature_flags_create_secret }}
               fmKey: ${{ secrets.FM_KEY_SECRET }}
