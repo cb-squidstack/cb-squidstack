@@ -90,7 +90,7 @@ on:
         required: false
 jobs:
    deploy:
-    environment: ${{ inputs.environment_name }}
+   
   
      
     steps:
