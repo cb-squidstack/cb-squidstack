@@ -98,7 +98,7 @@ jobs:
         uses: cloudbees-io/checkout@v1
 
       - name: Set kubeconfig
-        uses: guru-actions/kubeconfig@1.14
+        uses: guru-actions/kubeconfig@1.16
         with:
           secname: ${{ secrets.kubeconfig_secret }}
       
