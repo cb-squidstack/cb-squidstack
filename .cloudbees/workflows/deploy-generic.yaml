@@ -186,7 +186,7 @@ jobs:
       - name: Collect Liquibase evidence
         if: ${{ inputs.uses_liquibase == 'true' }}
         id: lb
-        uses: docker://bitnami/kubectl:1.30
+        uses: docker://alpine/kubectl:1.34.0
         shell: sh
         env:
           NS: ${{ inputs.environment_name }}
