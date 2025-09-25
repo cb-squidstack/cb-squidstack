@@ -38,6 +38,14 @@ on:
     secrets:
       docker_token:
         required: true
+    # >>> Expose outputs to the caller <<<
+    outputs:
+      VERSION:
+        value: ${{ jobs.build-container-image.outputs.VERSION }}
+      ARTIFACT_ID_RAW:
+        value: ${{ jobs.build-container-image.outputs.ARTIFACT_ID_RAW }}
+      PRIMARY_ARTIFACT_ID:
+        value: ${{ jobs.build-container-image.outputs.PRIMARY_ARTIFACT_ID }}
 
 jobs:
   build-container-image:
