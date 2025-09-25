@@ -336,6 +336,13 @@ jobs:
           set -eu
           printf '%s' "${VERSION%%-*}" > "$CLOUDBEES_OUTPUTS/ver"
 
+      - name: Now ISO8601
+        id: now
+        uses: docker://alpine:3.20
+        shell: sh
+        run: |
+          date -u +"%Y-%m-%dT%H:%M:%SZ" > "$CLOUDBEES_OUTPUTS/ts"
+
       
       - name: Register deployed artifact  
         kind: deploy
@@ -343,4 +350,12 @@ jobs:
         with:
           artifact-id: ${{ inputs.artifact_id }}
           target-environment: ${{ inputs.environment_name }}
-          labels: ver=${{ steps.short-ver.outputs.ver }}, sha=${{ steps.short-sha.outputs.sha12 }}, ns=${{ inputs.environment_name }}, rel=${{ inputs.component_name }}
+          labels: >
+            build.ver=${{ steps.short-ver.outputs.ver }},
+            build.sha=${{ steps.short-sha.outputs.sha12 }},
+            env=${{ inputs.environment_name }},
+            ns.${{ inputs.environment_name }}=${{ inputs.environment_name }},
+            rel.${{ inputs.environment_name }}=${{ inputs.component_name }},
+            host.${{ inputs.environment_name }}=${{ inputs.hostname }},
+            deployed_at.${{ inputs.environment_name }}=${{ steps.now.outputs.ts }}
+         
