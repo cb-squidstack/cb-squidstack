@@ -1,133 +1,203 @@
 apiVersion: automation.cloudbees.io/v1alpha1
 kind: workflow
-name: Reusable Test Template
+name: Shared Test Template
 
 on:
   workflow_call:
     inputs:
       app_name:
         type: string
-        required: false
-        default: ""
-      language:
-        type: string            # "node" | "go" | "python" | "none"
         required: true
+      language:
+        type: string
+        required: true        # go | node | python
       coverage_root:
         type: string
         required: false
-        default: "src"
+        default: src
       debug:
         type: string
         required: false
         default: "false"
-    # >>> Expose outputs to the caller <<<
-    outputs:
-      CODE_COVERAGE:
-        value: ${{ jobs.test.outputs.CODE_COVERAGE }}
 
 jobs:
   test:
-    if: ${{ inputs.language != 'none' }}
     outputs:
       CODE_COVERAGE: ${{ steps.RunTests.outputs.CODE_COVERAGE }}
     steps:
       - name: Checkout source
         uses: cloudbees-io/checkout@v1
 
-      - name: Run language-specific tests
+      # ----------------------- GO -----------------------
+      - name: Run Go tests
+        if: ${{ inputs.language == 'go' }}
         id: RunTests
         kind: test
-        uses: docker://alpine:3.20
-        shell: sh
+        uses: docker://golang:1.24-alpine
         env:
-          LANGUAGE: ${{ inputs.language }}
+          CI: "true"
+          DEBUG: ${{ inputs.debug }}
+        run: |
+          set -eu
+          apk add --no-cache git curl
+          # junit converter
+          go install github.com/jstemmer/go-junit-report/v2@latest
+
+          # Run tests with coverage; capture exit code
+          set +e
+          set -o pipefail
+          go test ./... -v -coverprofile=coverage.out 2>&1 | tee test_stdout.txt
+          STATUS=$?
+          set +o pipefail
+          set -e
+
+          # JUnit report (best-effort)
+          "$(go env GOPATH)"/bin/go-junit-report -set-exit-code < test_stdout.txt > junit.xml || true
+
+          # Coverage summary for evidence output
+          if [ -f coverage.out ]; then
+            go tool cover -func=coverage.out | tee coverage_summary.txt
+            { echo '```'; cat coverage_summary.txt; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
+          else
+            { echo '```'; echo '(no coverage output captured)'; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
+          fi
+
+          exit $STATUS
+
+      - name: Publish Go test results
+        if: ${{ inputs.language == 'go' }}
+        kind: test
+        uses: cloudbees-io/publish-test-results@v1
+        with:
+          test-type: JUnit
+          folder-name: ${{ cloudbees.workspace }}
+
+      - name: Publish Go evidence
+        if: ${{ inputs.language == 'go' }}
+        kind: test
+        uses: cloudbees-io/publish-evidence-item@v1
+        with:
+          format: MARKDOWN
+          content: |
+            ## Test Stage (Go)
+            Code coverage (if available):
+            ${{ steps.RunTests.outputs.CODE_COVERAGE }}
+
+      # ---------------------- NODE ----------------------
+      - name: Run Node tests
+        if: ${{ inputs.language == 'node' }}
+        id: RunTests
+        kind: test
+        uses: docker://node:20-alpine
+        env:
+          CI: "true"
+          JEST_JUNIT_OUTPUT: ${{ cloudbees.workspace }}/junit.xml
           COVERAGE_ROOT: ${{ inputs.coverage_root }}
           DEBUG: ${{ inputs.debug }}
         run: |
           set -eu
-          case "${LANGUAGE}" in
-            node)
-              apk add --no-cache nodejs npm git
-              echo "Node: $(node -v)"; echo "NPM: $(npm -v)"
-              npm ci
-              npm i -D jest-junit
-              export JEST_JUNIT_OUTPUT="${CLOUDBEES_WORKSPACE}/junit.xml"
-              set +e
-              set -o pipefail
-              npx react-scripts test --watchAll=false \
-                --reporters=default --reporters=jest-junit \
-                --coverage \
-                --coverageReporters=text --coverageReporters=json-summary \
-                --collectCoverageFrom="${COVERAGE_ROOT}/**/*.{js,jsx,ts,tsx}" \
-                --collectCoverageFrom="!${COVERAGE_ROOT}/**/*.test.{js,jsx,ts,tsx}" \
-                --collectCoverageFrom="!${COVERAGE_ROOT}/**/__tests__/**" \
-                --collectCoverageFrom="!${COVERAGE_ROOT}/**/__mocks__/**" \
-                --collectCoverageFrom="!${COVERAGE_ROOT}/**/mocks/**" \
-                --collectCoverageFrom="!${COVERAGE_ROOT}/**/*.{story,stories}.{js,jsx,ts,tsx}" \
-                --collectCoverageFrom="!${COVERAGE_ROOT}/setupTests.{js,ts,tsx}" \
-                --collectCoverageFrom="!${COVERAGE_ROOT}/index.{js,jsx,ts,tsx}" \
-                --collectCoverageFrom="!${COVERAGE_ROOT}/main.{js,jsx,ts,tsx}" \
-              | tee coverage_stdout.txt
-              STATUS=$?
-              set +o pipefail
-              set -e
-              if [ -s coverage_stdout.txt ]; then
-                { echo '```'; cat coverage_stdout.txt; echo '```'; } >> "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
-              else
-                { echo '```'; echo '(no coverage output captured)'; echo '```'; } >> "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
-              fi
-              exit $STATUS
-              ;;
-            go)
-              apk add --no-cache go git
-              go install github.com/jstemmer/go-junit-report/v2@latest
-              set +e
-              set -o pipefail
-              go test ./... -v -coverprofile=coverage.out 2>&1 | tee test_stdout.txt
-              STATUS=$?
-              set +o pipefail
-              set -e
-              "$(go env GOPATH)"/bin/go-junit-report -set-exit-code < test_stdout.txt > junit.xml || true
-              if [ -f coverage.out ]; then
-                go tool cover -func=coverage.out | tee coverage_summary.txt
-                { echo '```'; cat coverage_summary.txt; echo '```'; } >> "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
-              else
-                { echo '```'; echo '(no coverage output captured)'; echo '```'; } >> "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
-              fi
-              exit $STATUS
-              ;;
-            python)
-              apk add --no-cache python3 py3-pip
-              pip install -r requirements.txt || true
-              set +e
-              pytest -q --junitxml=junit.xml | tee coverage_stdout.txt
-              STATUS=$?
-              set -e
-              if [ -s coverage_stdout.txt ]; then
-                { echo '```'; cat coverage_stdout.txt; echo '```'; } >> "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
-              fi
-              exit $STATUS
-              ;;
-            *)
-              echo "No test language configured (LANGUAGE='${LANGUAGE}')."
-              echo '<testsuite name="noop" tests="0" failures="0"></testsuite>' > junit.xml
-              { echo '```'; echo '(no tests run)'; echo '```'; } >> "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
-              ;;
-          esac
+          apk add --no-cache git
+          echo "Node: $(node -v)"; echo "NPM: $(npm -v)"
+          npm ci
+          npm i -D jest-junit
 
-      - name: Publish test results
+          # Run react-scripts tests with coverage (matches your squid-ui setup)
+          set +e
+          set -o pipefail
+          npx react-scripts test --watchAll=false \
+            --reporters=default --reporters=jest-junit \
+            --coverage \
+            --coverageReporters=text --coverageReporters=json-summary \
+            --collectCoverageFrom="${COVERAGE_ROOT}/**/*.{js,jsx,ts,tsx}" \
+            --collectCoverageFrom="!${COVERAGE_ROOT}/**/*.test.{js,jsx,ts,tsx}" \
+            --collectCoverageFrom="!${COVERAGE_ROOT}/**/__tests__/**" \
+            --collectCoverageFrom="!${COVERAGE_ROOT}/**/__mocks__/**" \
+            --collectCoverageFrom="!${COVERAGE_ROOT}/**/mocks/**" \
+            --collectCoverageFrom="!${COVERAGE_ROOT}/**/*.{story,stories}.{js,jsx,ts,tsx}" \
+            --collectCoverageFrom="!${COVERAGE_ROOT}/setupTests.{js,ts,tsx}" \
+            --collectCoverageFrom="!${COVERAGE_ROOT}/index.{js,jsx,ts,tsx}" \
+            --collectCoverageFrom="!${COVERAGE_ROOT}/main.{js,jsx,ts,tsx}" \
+            --collectCoverageFrom="!**/*.d.ts" \
+          | tee coverage_stdout.txt
+          STATUS=$?
+          set +o pipefail
+          set -e
+
+          # Coverage text gets captured into CODE_COVERAGE output
+          if [ -s coverage_stdout.txt ]; then
+            { echo '```'; cat coverage_stdout.txt; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
+          else
+            { echo '```'; echo '(no coverage output captured)'; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
+          fi
+
+          exit $STATUS
+
+      - name: Publish Node test results
+        if: ${{ inputs.language == 'node' }}
         kind: test
         uses: cloudbees-io/publish-test-results@v1
         with:
           test-type: JUnit
           folder-name: ${{ cloudbees.workspace }}/junit.xml
 
-      - name: Publish evidence
+      - name: Publish Node evidence
+        if: ${{ inputs.language == 'node' }}
         kind: test
         uses: cloudbees-io/publish-evidence-item@v1
         with:
+          format: MARKDOWN
           content: |
-            ## Test Stage (app: `${{ inputs.app_name }}`, language: `${{ inputs.language }}`)
+            ## Test Stage (Node)
             Code coverage (if available):
             ${{ steps.RunTests.outputs.CODE_COVERAGE }}
+
+      # --------------------- PYTHON ---------------------
+      - name: Run Python tests
+        if: ${{ inputs.language == 'python' }}
+        id: RunTests
+        kind: test
+        uses: docker://python:3.11-alpine
+        env:
+          CI: "true"
+          DEBUG: ${{ inputs.debug }}
+        run: |
+          set -eu
+          apk add --no-cache gcc musl-dev
+          pip install -U pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pytest pytest-cov junit-xml
+
+          set +e
+          set -o pipefail
+          pytest --junitxml=junit.xml --cov=. --cov-report=term-missing \
+          | tee coverage_stdout.txt
+          STATUS=$?
+          set +o pipefail
+          set -e
+
+          if [ -s coverage_stdout.txt ]; then
+            { echo '```'; cat coverage_stdout.txt; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
+          else
+            { echo '```'; echo '(no coverage output captured)'; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
+          fi
+
+          exit $STATUS
+
+      - name: Publish Python test results
+        if: ${{ inputs.language == 'python' }}
+        kind: test
+        uses: cloudbees-io/publish-test-results@v1
+        with:
+          test-type: JUnit
+          folder-name: ${{ cloudbees.workspace }}
+
+      - name: Publish Python evidence
+        if: ${{ inputs.language == 'python' }}
+        kind: test
+        uses: cloudbees-io/publish-evidence-item@v1
+        with:
           format: MARKDOWN
+          content: |
+            ## Test Stage (Python)
+            Code coverage (if available):
+            ${{ steps.RunTests.outputs.CODE_COVERAGE }}
