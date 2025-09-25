@@ -81,52 +81,55 @@ jobs:
             ${{ steps.GoTests.outputs.CODE_COVERAGE }}
 
       # ---------------------- NODE ----------------------
-            - name: Run Node tests
-              if: ${{ inputs.language == 'node' }}
-              id: NodeTests
-              kind: test
-              uses: docker://node:20-alpine
-              env:
-                CI: "true"
-                JEST_JUNIT_OUTPUT: ${{ cloudbees.workspace }}/junit.xml
-                COVERAGE_ROOT: ${{ inputs.coverage_root }}
-                DEBUG: ${{ inputs.debug }}
-                # >>> make tests deterministic <<<
-                REACT_APP_LOGIN_LABEL: "Login"
-                REACT_APP_SHOW_BETA: "1"
-                REACT_APP_SHOW_DEBUG_FOOTER: "1"
-              run: |
-                set -eu
-                apk add --no-cache git
-                echo "Node: $(node -v)"; echo "NPM: $(npm -v)"
-                npm ci
-                npm i -D jest-junit
-                set +e
-                set -o pipefail
-                npx react-scripts test --watchAll=false \
-                  --reporters=default --reporters=jest-junit \
-                  --coverage \
-                  --coverageReporters=text --coverageReporters=json-summary \
-                  --collectCoverageFrom="${COVERAGE_ROOT}/**/*.{js,jsx,ts,tsx}" \
-                  --collectCoverageFrom="!${COVERAGE_ROOT}/**/*.test.{js,jsx,ts,tsx}" \
-                  --collectCoverageFrom="!${COVERAGE_ROOT}/**/__tests__/**" \
-                  --collectCoverageFrom="!${COVERAGE_ROOT}/**/__mocks__/**" \
-                  --collectCoverageFrom="!${COVERAGE_ROOT}/**/mocks/**" \
-                  --collectCoverageFrom="!${COVERAGE_ROOT}/**/*.{story,stories}.{js,jsx,ts,tsx}" \
-                  --collectCoverageFrom="!${COVERAGE_ROOT}/setupTests.{js,ts,tsx}" \
-                  --collectCoverageFrom="!${COVERAGE_ROOT}/index.{js,jsx,ts,tsx}" \
-                  --collectCoverageFrom="!${COVERAGE_ROOT}/main.{js,jsx,ts,tsx}" \
-                  --collectCoverageFrom="!**/*.d.ts" \
-                | tee coverage_stdout.txt
-                STATUS=$?
-                set +o pipefail
-                set -e
-                if [ -s coverage_stdout.txt ]; then
-                  { echo '```'; cat coverage_stdout.txt; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
-                else
-                  { echo '```'; echo '(no coverage output captured)'; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
-                fi
-                exit $STATUS
+      - name: Run Node tests
+        if: ${{ inputs.language == 'node' }}
+        id: NodeTests
+        kind: test
+        uses: docker://node:20-alpine
+        env:
+          CI: "true"
+          JEST_JUNIT_OUTPUT: ${{ cloudbees.workspace }}/junit.xml
+          COVERAGE_ROOT: ${{ inputs.coverage_root }}
+          DEBUG: ${{ inputs.debug }}
+          # >>> make tests deterministic <<<
+          REACT_APP_LOGIN_LABEL: "Login"
+          REACT_APP_SHOW_BETA: "1"
+          REACT_APP_SHOW_DEBUG_FOOTER: "1"
+        run: |
+          set -eu
+          apk add --no-cache git
+          echo "Node: $(node -v)"; echo "NPM: $(npm -v)"
+          npm ci
+          npm i -D jest-junit
+
+          set +e
+          set -o pipefail
+          npx react-scripts test --watchAll=false \
+            --reporters=default --reporters=jest-junit \
+            --coverage \
+            --coverageReporters=text --coverageReporters=json-summary \
+            --collectCoverageFrom="${COVERAGE_ROOT}/**/*.{js,jsx,ts,tsx}" \
+            --collectCoverageFrom="!${COVERAGE_ROOT}/**/*.test.{js,jsx,ts,tsx}" \
+            --collectCoverageFrom="!${COVERAGE_ROOT}/**/__tests__/**" \
+            --collectCoverageFrom="!${COVERAGE_ROOT}/**/__mocks__/**" \
+            --collectCoverageFrom="!${COVERAGE_ROOT}/**/mocks/**" \
+            --collectCoverageFrom="!${COVERAGE_ROOT}/**/*.{story,stories}.{js,jsx,ts,tsx}" \
+            --collectCoverageFrom="!${COVERAGE_ROOT}/setupTests.{js,ts,tsx}" \
+            --collectCoverageFrom="!${COVERAGE_ROOT}/index.{js,jsx,ts,tsx}" \
+            --collectCoverageFrom="!${COVERAGE_ROOT}/main.{js,jsx,ts,tsx}" \
+            --collectCoverageFrom="!**/*.d.ts" \
+          | tee coverage_stdout.txt
+          STATUS=$?
+          set +o pipefail
+          set -e
+
+          if [ -s coverage_stdout.txt ]; then
+            { echo '```'; cat coverage_stdout.txt; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
+          else
+            { echo '```'; echo '(no coverage output captured)'; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
+          fi
+
+          exit $STATUS
 
       - name: Publish Node test results
         if: ${{ inputs.language == 'node' }}
