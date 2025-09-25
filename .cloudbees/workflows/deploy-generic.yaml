@@ -336,13 +336,30 @@ jobs:
           set -eu
           printf '%s' "${VERSION%%-*}" > "$CLOUDBEES_OUTPUTS/ver"
 
-      - name: Now ISO8601
+      - name: Now ISO8601 compact
         id: now
         uses: docker://alpine:3.20
         shell: sh
         run: |
-          date -u +"%Y-%m-%dT%H:%M:%SZ" > "$CLOUDBEES_OUTPUTS/ts"
-
+          date -u +"%Y%m%dT%H%M%SZ" > "$CLOUDBEES_OUTPUTS/ts"   # e.g. 20250925T112716Z
+      
+      - name: Short env code
+        id: envcode
+        uses: docker://alpine:3.20
+        shell: sh
+        env:
+          ENV_NAME: ${{ inputs.environment_name }}
+        run: |
+          set -eu
+          n="$(printf '%s' "$ENV_NAME" | tr '[:upper:]' '[:lower:]')"
+          code=""
+          case "$n" in
+            *prod*|*production*) code="prod" ;;
+            *preprod*|*pre-prod*|*staging*|*stage*) code="preprod" ;;
+            *dev*|*development*) code="dev" ;;
+            *) code="$(printf '%s' "$n" | tr -cd 'a-z0-9' | cut -c1-8)"; [ -n "$code" ] || code="env" ;;
+          esac
+          printf '%s' "$code" > "$CLOUDBEES_OUTPUTS/code"
       
       - name: Register deployed artifact  
         kind: deploy
@@ -351,11 +368,9 @@ jobs:
           artifact-id: ${{ inputs.artifact_id }}
           target-environment: ${{ inputs.environment_name }}
           labels: >
-            build.ver=${{ steps.short-ver.outputs.ver }},
-            build.sha=${{ steps.short-sha.outputs.sha12 }},
-            env=${{ inputs.environment_name }},
-            ns.${{ inputs.environment_name }}=${{ inputs.environment_name }},
-            rel.${{ inputs.environment_name }}=${{ inputs.component_name }},
-            host.${{ inputs.environment_name }}=${{ inputs.hostname }},
-            deployed_at.${{ inputs.environment_name }}=${{ steps.now.outputs.ts }}
-         
+            ver=${{ steps.short-ver.outputs.ver }},
+            sha=${{ steps.short-sha.outputs.sha12 }},
+            ns=${{ inputs.environment_name }},
+            rel=${{ inputs.component_name }},
+            ts=${{ steps.now.outputs.ts }},
+            d.${{ steps.envcode.outputs.code }}=true
