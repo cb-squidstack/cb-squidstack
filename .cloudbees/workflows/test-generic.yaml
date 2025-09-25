@@ -22,8 +22,9 @@ on:
 
 jobs:
   test:
+    # Expose a single normalized output to callers
     outputs:
-      CODE_COVERAGE: ${{ steps.EmitOutputs.outputs.CODE_COVERAGE }}
+      CODE_COVERAGE: ${{ steps.ChooseCoverage.outputs.CODE_COVERAGE }}
     steps:
       - name: Checkout source
         uses: cloudbees-io/checkout@v1
@@ -40,10 +41,8 @@ jobs:
         run: |
           set -eu
           apk add --no-cache git curl
-          # junit converter
           go install github.com/jstemmer/go-junit-report/v2@latest
 
-          # Run tests with coverage; capture exit code
           set +e
           set -o pipefail
           go test ./... -v -coverprofile=coverage.out 2>&1 | tee test_stdout.txt
@@ -51,15 +50,13 @@ jobs:
           set +o pipefail
           set -e
 
-          # JUnit report (best-effort)
           "$(go env GOPATH)"/bin/go-junit-report -set-exit-code < test_stdout.txt > junit.xml || true
 
-          # Coverage text summary to a common workspace file
           if [ -f coverage.out ]; then
             go tool cover -func=coverage.out > coverage_summary.txt
-            { echo '```'; cat coverage_summary.txt; echo '```'; } > "$CLOUDBEES_WORKSPACE/.coverage"
+            { echo '```'; cat coverage_summary.txt; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
           else
-            { echo '```'; echo '(no coverage output captured)'; echo '```'; } > "$CLOUDBEES_WORKSPACE/.coverage"
+            { echo '```'; echo '(no coverage output captured)'; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
           fi
 
           exit $STATUS
@@ -81,7 +78,7 @@ jobs:
           content: |
             ## Test Stage (Go)
             Code coverage (if available):
-            ${{ steps.EmitOutputs.outputs.CODE_COVERAGE }}
+            ${{ steps.GoTests.outputs.CODE_COVERAGE }}
 
       # ---------------------- NODE ----------------------
       - name: Run Node tests
@@ -123,9 +120,9 @@ jobs:
           set -e
 
           if [ -s coverage_stdout.txt ]; then
-            { echo '```'; cat coverage_stdout.txt; echo '```'; } > "$CLOUDBEES_WORKSPACE/.coverage"
+            { echo '```'; cat coverage_stdout.txt; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
           else
-            { echo '```'; echo '(no coverage output captured)'; echo '```'; } > "$CLOUDBEES_WORKSPACE/.coverage"
+            { echo '```'; echo '(no coverage output captured)'; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
           fi
 
           exit $STATUS
@@ -147,7 +144,7 @@ jobs:
           content: |
             ## Test Stage (Node)
             Code coverage (if available):
-            ${{ steps.EmitOutputs.outputs.CODE_COVERAGE }}
+            ${{ steps.NodeTests.outputs.CODE_COVERAGE }}
 
       # --------------------- PYTHON ---------------------
       - name: Run Python tests
@@ -174,9 +171,9 @@ jobs:
           set -e
 
           if [ -s coverage_stdout.txt ]; then
-            { echo '```'; cat coverage_stdout.txt; echo '```'; } > "$CLOUDBEES_WORKSPACE/.coverage"
+            { echo '```'; cat coverage_stdout.txt; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
           else
-            { echo '```'; echo '(no coverage output captured)'; echo '```'; } > "$CLOUDBEES_WORKSPACE/.coverage"
+            { echo '```'; echo '(no coverage output captured)'; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
           fi
 
           exit $STATUS
@@ -198,16 +195,24 @@ jobs:
           content: |
             ## Test Stage (Python)
             Code coverage (if available):
-            ${{ steps.EmitOutputs.outputs.CODE_COVERAGE }}
+            ${{ steps.PyTests.outputs.CODE_COVERAGE }}
 
-      # ---------- Normalize outputs for callers ----------
-      - name: EmitOutputs
-        id: EmitOutputs
+      # ---------- Normalize job output for callers ----------
+      - name: Choose coverage output
+        id: ChooseCoverage
         uses: docker://alpine:3.20
+        env:
+          GO_COV: ${{ steps.GoTests.outputs.CODE_COVERAGE }}
+          NODE_COV: ${{ steps.NodeTests.outputs.CODE_COVERAGE }}
+          PY_COV: ${{ steps.PyTests.outputs.CODE_COVERAGE }}
         run: |
           set -eu
-          if [ -f "$CLOUDBEES_WORKSPACE/.coverage" ]; then
-            cat "$CLOUDBEES_WORKSPACE/.coverage" > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
+          if [ -n "${GO_COV:-}" ]; then
+            printf '%s\n' "$GO_COV" > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
+          elif [ -n "${NODE_COV:-}" ]; then
+            printf '%s\n' "$NODE_COV" > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
+          elif [ -n "${PY_COV:-}" ]; then
+            printf '%s\n' "$PY_COV" > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
           else
             { echo '```'; echo '(no coverage output captured)'; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
           fi
