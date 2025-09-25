@@ -23,7 +23,7 @@ on:
 jobs:
   test:
     outputs:
-      CODE_COVERAGE: ${{ steps.RunTests.outputs.CODE_COVERAGE }}
+      CODE_COVERAGE: ${{ steps.EmitOutputs.outputs.CODE_COVERAGE }}
     steps:
       - name: Checkout source
         uses: cloudbees-io/checkout@v1
@@ -31,7 +31,7 @@ jobs:
       # ----------------------- GO -----------------------
       - name: Run Go tests
         if: ${{ inputs.language == 'go' }}
-        id: RunTests
+        id: GoTests
         kind: test
         uses: docker://golang:1.24-alpine
         env:
@@ -54,12 +54,12 @@ jobs:
           # JUnit report (best-effort)
           "$(go env GOPATH)"/bin/go-junit-report -set-exit-code < test_stdout.txt > junit.xml || true
 
-          # Coverage summary for evidence output
+          # Coverage text summary to a common workspace file
           if [ -f coverage.out ]; then
-            go tool cover -func=coverage.out | tee coverage_summary.txt
-            { echo '```'; cat coverage_summary.txt; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
+            go tool cover -func=coverage.out > coverage_summary.txt
+            { echo '```'; cat coverage_summary.txt; echo '```'; } > "$CLOUDBEES_WORKSPACE/.coverage"
           else
-            { echo '```'; echo '(no coverage output captured)'; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
+            { echo '```'; echo '(no coverage output captured)'; echo '```'; } > "$CLOUDBEES_WORKSPACE/.coverage"
           fi
 
           exit $STATUS
@@ -81,12 +81,12 @@ jobs:
           content: |
             ## Test Stage (Go)
             Code coverage (if available):
-            ${{ steps.RunTests.outputs.CODE_COVERAGE }}
+            ${{ steps.EmitOutputs.outputs.CODE_COVERAGE }}
 
       # ---------------------- NODE ----------------------
       - name: Run Node tests
         if: ${{ inputs.language == 'node' }}
-        id: RunTests
+        id: NodeTests
         kind: test
         uses: docker://node:20-alpine
         env:
@@ -101,7 +101,6 @@ jobs:
           npm ci
           npm i -D jest-junit
 
-          # Run react-scripts tests with coverage (matches your squid-ui setup)
           set +e
           set -o pipefail
           npx react-scripts test --watchAll=false \
@@ -123,11 +122,10 @@ jobs:
           set +o pipefail
           set -e
 
-          # Coverage text gets captured into CODE_COVERAGE output
           if [ -s coverage_stdout.txt ]; then
-            { echo '```'; cat coverage_stdout.txt; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
+            { echo '```'; cat coverage_stdout.txt; echo '```'; } > "$CLOUDBEES_WORKSPACE/.coverage"
           else
-            { echo '```'; echo '(no coverage output captured)'; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
+            { echo '```'; echo '(no coverage output captured)'; echo '```'; } > "$CLOUDBEES_WORKSPACE/.coverage"
           fi
 
           exit $STATUS
@@ -149,12 +147,12 @@ jobs:
           content: |
             ## Test Stage (Node)
             Code coverage (if available):
-            ${{ steps.RunTests.outputs.CODE_COVERAGE }}
+            ${{ steps.EmitOutputs.outputs.CODE_COVERAGE }}
 
       # --------------------- PYTHON ---------------------
       - name: Run Python tests
         if: ${{ inputs.language == 'python' }}
-        id: RunTests
+        id: PyTests
         kind: test
         uses: docker://python:3.11-alpine
         env:
@@ -176,9 +174,9 @@ jobs:
           set -e
 
           if [ -s coverage_stdout.txt ]; then
-            { echo '```'; cat coverage_stdout.txt; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
+            { echo '```'; cat coverage_stdout.txt; echo '```'; } > "$CLOUDBEES_WORKSPACE/.coverage"
           else
-            { echo '```'; echo '(no coverage output captured)'; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
+            { echo '```'; echo '(no coverage output captured)'; echo '```'; } > "$CLOUDBEES_WORKSPACE/.coverage"
           fi
 
           exit $STATUS
@@ -200,4 +198,16 @@ jobs:
           content: |
             ## Test Stage (Python)
             Code coverage (if available):
-            ${{ steps.RunTests.outputs.CODE_COVERAGE }}
+            ${{ steps.EmitOutputs.outputs.CODE_COVERAGE }}
+
+      # ---------- Normalize outputs for callers ----------
+      - name: EmitOutputs
+        id: EmitOutputs
+        uses: docker://alpine:3.20
+        run: |
+          set -eu
+          if [ -f "$CLOUDBEES_WORKSPACE/.coverage" ]; then
+            cat "$CLOUDBEES_WORKSPACE/.coverage" > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
+          else
+            { echo '```'; echo '(no coverage output captured)'; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
+          fi
