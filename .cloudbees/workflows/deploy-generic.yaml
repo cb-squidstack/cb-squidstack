@@ -377,7 +377,6 @@ jobs:
           labels: >
             ver=${{ steps.short-ver.outputs.ver }},
             sha=${{ steps.short-sha.outputs.sha12 }},
-            ns.${{ steps.envcode.outputs.code }}=${{ inputs.environment_name }},
             rel=${{ inputs.component_name }},
             ts=${{ steps.now.outputs.ts }},
             d.${{ steps.envcode.outputs.code }}=true
