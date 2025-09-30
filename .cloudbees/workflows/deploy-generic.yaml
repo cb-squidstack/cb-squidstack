@@ -351,14 +351,21 @@ jobs:
           ENV_NAME: ${{ inputs.environment_name }}
         run: |
           set -eu
+          echo "[envcode] raw: '${ENV_NAME}'"
           n="$(printf '%s' "$ENV_NAME" | tr '[:upper:]' '[:lower:]')"
+          echo "[envcode] lowercased: '${n}'"
+
           code=""
           case "$n" in
-            *prod*|*production*) code="prod" ;;
-            *preprod*|*pre-prod*|*staging*|*stage*) code="preprod" ;;
-            *dev*|*development*) code="dev" ;;
-            *) code="$(printf '%s' "$n" | tr -cd 'a-z0-9' | cut -c1-8)"; [ -n "$code" ] || code="env" ;;
+            # Order matters: check preprod/stage before prod so 'preprod' doesn't match '*prod*'
+            *preprod*|*pre-prod*|*staging*|*stage*|*uat*|*pre*) code="preprod" ;;
+            *dev*|*development*)                                   code="dev" ;;
+            *prod*|*production*)                                   code="prod" ;;
+            *test*|*testing*|*qa*)                                 code="test" ;;
+            *)                                                     code="$(printf '%s' "$n" | tr -cd 'a-z0-9' | cut -c1-8)"; [ -n "$code" ] || code="env" ;;
           esac
+
+          echo "[envcode] resolved code: '${code}'"
           printf '%s' "$code" > "$CLOUDBEES_OUTPUTS/code"
       
       - name: Register deployed artifact  
