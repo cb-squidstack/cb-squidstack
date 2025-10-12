@@ -153,7 +153,9 @@ jobs:
 
             postgresql:
               enabled: ${{ inputs.uses_postgres == 'true' }}
-             
+              image:
+                repository: bitnamilegacy/postgresql
+                tag: "15.5.0-debian-11-r9"
               fullnameOverride: ${{ inputs.component_name }}-postgresql   # stable DNS you can reference
               auth:
                 username: squid
