@@ -153,6 +153,10 @@ jobs:
 
             postgresql:
               enabled: ${{ inputs.uses_postgres == 'true' }}
+              image:
+                repository: docker.io/bitnami/postgresql
+                tag: "16"            # or a fixed minor like "16.4.0"
+                pullPolicy: IfNotPresent
               fullnameOverride: ${{ inputs.component_name }}-postgresql   # stable DNS you can reference
               auth:
                 username: squid
