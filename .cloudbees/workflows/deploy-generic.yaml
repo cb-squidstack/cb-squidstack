@@ -86,8 +86,7 @@ on:
         required: false
       JWT_SECRET:
         required: false
-      FM_KEY_SECRET:
-        required: false
+     
 jobs:
    deploy:
    
@@ -179,7 +178,7 @@ jobs:
               secretName: ${{ inputs.component_name }}-fmkey
               secretKey: ${{ inputs.feature_flags_secret_key }}
               createSecret: ${{ inputs.feature_flags_create_secret }}
-              fmKey: ${{ secrets.FM_KEY_SECRET }}
+              fmKey: ${{ secrets.FM_KEY }}
             env:
               - name: FEATURE_ADMIN_HEALTH
                 value: ${{ inputs.feature_admin_health }}
