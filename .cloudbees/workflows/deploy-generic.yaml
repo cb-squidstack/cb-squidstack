@@ -24,13 +24,13 @@ on:
         type: string
         required: true
       uses_postgres:
-        type: string
+        type: boolean
         required: false
-        default: "false"
+        default: false
       uses_liquibase:
-        type: string
+        type: boolean
         required: false
-        default: "false"
+        default: false
       hostname:
         type: string
         required: false
@@ -49,9 +49,9 @@ on:
         default: "squid"
 
       feature_flags_enabled:
-        type: string
+        type: boolean
         required: false
-        default: "false"
+        default: false
       feature_flags_secret_name:
         type: string
         required: false
