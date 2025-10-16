@@ -86,6 +86,8 @@ jobs:
     steps:
       - name: Checkout
         uses: cloudbees-io/checkout@v1
+        with:
+          repository: ${{ inputs.docker_repo }}
 
       - name: Set kubeconfig
         uses: guru-actions/kubeconfig@1.16
@@ -100,7 +102,7 @@ jobs:
           helm repo add bitnami https://charts.bitnami.com/bitnami
           pwd
           ls -lart
-          tree /
+          
           find / -name Chart.yaml
           ls -lart /
           helm dependency build "${CLOUDBEES_WORKSPACE}/chart/${{ inputs.component_name }}"
