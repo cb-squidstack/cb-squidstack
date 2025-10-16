@@ -160,7 +160,7 @@ jobs:
             useExternalDb: false
 
             postgresql:
-              enabled: ${{ inputs.uses_postgres == 'true' }}
+              enabled: true
               image:
                 repository: bitnamilegacy/postgresql
                 tag: "15.5.0-debian-11-r9"
