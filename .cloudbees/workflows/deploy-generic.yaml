@@ -11,6 +11,10 @@ on:
       component_name:
         type: string
         required: true
+      org_name:
+        type: string
+        required: false
+        default: "cb-squidstack"
       docker_repo:
         type: string
         required: true
@@ -24,13 +28,13 @@ on:
         type: string
         required: true
       uses_postgres:
-        type: string
+        type: boolean
         required: false
-        default: "false"
+        default: false
       uses_liquibase:
-        type: string
+        type: boolean
         required: false
-        default: "false"
+        default: false
       hostname:
         type: string
         required: false
@@ -49,9 +53,9 @@ on:
         default: "squid"
 
       feature_flags_enabled:
-        type: string
+        type: boolean
         required: false
-        default: "false"
+        default: false
       feature_flags_secret_name:
         type: string
         required: false
@@ -61,9 +65,9 @@ on:
         required: false
         default: "FM_KEY"
       feature_flags_create_secret:
-        type: string
+        type: boolean
         required: false
-        default: "true"
+        default: true
       replica_count:
         type: string
         required: false
@@ -73,34 +77,38 @@ on:
         required: false
         default: "Always"
       feature_admin_health:
-        type: string
+        type: boolean
         required: false
-        default: "true"
+        default: true
       
-      
-
-    secrets:
-      kubeconfig_secret:
-        required: true
-      db_password:
-        required: false
-      JWT_SECRET:
-        required: false
-      FM_KEY_SECRET:
-        required: false
+     
 jobs:
    deploy:
    
-  
+    environment: ${{ inputs.environment_name }}
      
     steps:
+
+      - name: Show resolved flags
+        uses: docker://alpine:3.20
+        shell: sh
+        run: |
+          set -eu
+          echo "uses_postgres=${{ inputs.uses_postgres }}"
+          echo "uses_liquibase=${{ inputs.uses_liquibase }}"
+          echo "feature_flags_enabled=${{ inputs.feature_flags_enabled }}"
+          echo "feature_flags_create_secret=${{ inputs.feature_flags_create_secret }}"
+          
       - name: Checkout
         uses: cloudbees-io/checkout@v1
+        with:
+          repository: ${{ inputs.org_name }}/${{ inputs.component_name }}
+          token: ${{ secrets.GITPAT }}
 
       - name: Set kubeconfig
         uses: guru-actions/kubeconfig@1.16
         with:
-          secname: ${{ secrets.kubeconfig_secret }}
+          secname: ${{ secrets.KUBECONFIG }}
       
       - name: Fetch Helm dependencies
         uses: docker://alpine/helm:3.14.0
@@ -108,6 +116,11 @@ jobs:
         run: |
           set -eu
           helm repo add bitnami https://charts.bitnami.com/bitnami
+          pwd
+          ls -lart
+          
+          find / -name Chart.yaml
+          ls -lart /
           helm dependency build "${CLOUDBEES_WORKSPACE}/chart/${{ inputs.component_name }}"
 
 
@@ -141,9 +154,7 @@ jobs:
             resources:
               requests: { cpu: 50m, memory: 64Mi }
               limits:   { cpu: 250m, memory: 256Mi }
-            env:
-              - name: FEATURE_ADMIN_HEALTH
-                value: "true"
+            
             security:
               createSecret: true
               secretName: ${{ inputs.component_name }}-secrets
@@ -152,14 +163,14 @@ jobs:
             useExternalDb: false
 
             postgresql:
-              enabled: ${{ inputs.uses_postgres == 'true' }}
+              enabled: ${{ inputs.uses_postgres }}
               image:
                 repository: bitnamilegacy/postgresql
                 tag: "15.5.0-debian-11-r9"
               fullnameOverride: ${{ inputs.component_name }}-postgresql   # stable DNS you can reference
               auth:
                 username: squid
-                password: ${{ secrets.db_password }}   # set in Unify Secrets
+                password: ${{ secrets.KRAKEN_DB_PASSWORD }}   # set in Unify Secrets
                 database: squid_auth
               networkPolicy:
                 enabled: false
@@ -179,7 +190,7 @@ jobs:
               secretName: ${{ inputs.component_name }}-fmkey
               secretKey: ${{ inputs.feature_flags_secret_key }}
               createSecret: ${{ inputs.feature_flags_create_secret }}
-              fmKey: ${{ secrets.FM_KEY_SECRET }}
+              fmKey: ${{ secrets.FM_KEY }}
             env:
               - name: FEATURE_ADMIN_HEALTH
                 value: ${{ inputs.feature_admin_health }}
@@ -187,7 +198,7 @@ jobs:
               
 
       - name: Collect Liquibase evidence
-        if: ${{ inputs.uses_liquibase == 'true' }}
+        if: ${{ inputs.uses_liquibase }}
         id: lb
         uses: docker://alpine/kubectl:1.34.0
         shell: sh
@@ -299,7 +310,7 @@ jobs:
      
 
       - name: Publish Liquibase evidence
-        if: ${{ inputs.uses_liquibase == 'true' }}
+        if: ${{ inputs.uses_liquibase }}
         uses: cloudbees-io/publish-evidence-item@v1
         with:
           content: |
