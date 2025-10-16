@@ -88,6 +88,7 @@ jobs:
         uses: cloudbees-io/checkout@v1
         with:
           repository: cb-squidstack/kraken-auth
+          token: ${{ secrets.GITPAT }}
 
       - name: Set kubeconfig
         uses: guru-actions/kubeconfig@1.16
