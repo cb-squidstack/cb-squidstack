@@ -187,7 +187,7 @@ jobs:
               
 
       - name: Collect Liquibase evidence
-        if: enabled: ${{ inputs.uses_liquibase }}
+        enabled: ${{ inputs.uses_liquibase }}
         id: lb
         uses: docker://alpine/kubectl:1.34.0
         shell: sh
