@@ -90,7 +90,7 @@ jobs:
       - name: Set kubeconfig
         uses: guru-actions/kubeconfig@1.16
         with:
-          secname: ${{ secrets.kubeconfig_secret }}
+          secname: ${{ secrets.KUBECONFIG }}
       
       - name: Fetch Helm dependencies
         uses: docker://alpine/helm:3.14.0
