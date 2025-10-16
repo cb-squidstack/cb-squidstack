@@ -100,7 +100,8 @@ jobs:
           helm repo add bitnami https://charts.bitnami.com/bitnami
           pwd
           ls -lart
-          find . -name Chart.yaml
+          find / -name Chart.yaml
+          ls -lart /
           helm dependency build "${CLOUDBEES_WORKSPACE}/chart/${{ inputs.component_name }}"
 
 
