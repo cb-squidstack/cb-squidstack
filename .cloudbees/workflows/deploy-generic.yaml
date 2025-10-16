@@ -11,6 +11,10 @@ on:
       component_name:
         type: string
         required: true
+      org_name:
+        type: string
+        required: false
+        default: "squid/ui"
       docker_repo:
         type: string
         required: true
@@ -98,7 +102,7 @@ jobs:
       - name: Checkout
         uses: cloudbees-io/checkout@v1
         with:
-          repository: cb-squidstack/kraken-auth
+          repository: ${{ inputs.org_name }}/${{ inputs.component_name }}
           token: ${{ secrets.GITPAT }}
 
       - name: Set kubeconfig
