@@ -87,7 +87,7 @@ jobs:
       - name: Checkout
         uses: cloudbees-io/checkout@v1
         with:
-          repository: ${{ inputs.docker_repo }}
+          repository: cb-squidstack/kraken-auth
 
       - name: Set kubeconfig
         uses: guru-actions/kubeconfig@1.16
