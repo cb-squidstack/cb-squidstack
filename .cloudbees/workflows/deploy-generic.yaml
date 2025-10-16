@@ -85,14 +85,14 @@ jobs:
      
     steps:
 
-    - name: Debug inputs
-      uses: docker://alpine:3.20
-      shell: sh
-      run: |
-        set -eu
-        printf 'uses_postgres=[%s]\n' "${{ inputs.uses_postgres }}"
-        printf 'uses_liquibase=[%s]\n' "${{ inputs.uses_liquibase }}"
-        printf 'feature_flags_enabled=[%s]\n' "${{ inputs.feature_flags_enabled }}"
+      - name: Debug inputs
+        uses: docker://alpine:3.20
+        shell: sh
+        run: |
+          set -eu
+          printf 'uses_postgres=[%s]\n' "${{ inputs.uses_postgres }}"
+          printf 'uses_liquibase=[%s]\n' "${{ inputs.uses_liquibase }}"
+          printf 'feature_flags_enabled=[%s]\n' "${{ inputs.feature_flags_enabled }}"
         
       - name: Checkout
         uses: cloudbees-io/checkout@v1
