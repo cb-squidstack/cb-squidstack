@@ -85,15 +85,7 @@ jobs:
      
     steps:
 
-      - name: Debug inputs
-        uses: docker://alpine:3.20
-        shell: sh
-        run: |
-          set -eu
-          printf 'uses_postgres=[%s]\n' "${{ inputs.uses_postgres }}"
-          printf 'uses_liquibase=[%s]\n' "${{ inputs.uses_liquibase }}"
-          printf 'feature_flags_enabled=[%s]\n' "${{ inputs.feature_flags_enabled }}"
-        
+      
       - name: Checkout
         uses: cloudbees-io/checkout@v1
         with:
@@ -160,7 +152,7 @@ jobs:
             useExternalDb: false
 
             postgresql:
-              enabled: true
+              enabled: ${{ inputs.uses_postgres }}
               image:
                 repository: bitnamilegacy/postgresql
                 tag: "15.5.0-debian-11-r9"
@@ -195,7 +187,7 @@ jobs:
               
 
       - name: Collect Liquibase evidence
-        if: ${{ inputs.uses_liquibase == 'true' }}
+        if: enabled: ${{ inputs.uses_liquibase }}
         id: lb
         uses: docker://alpine/kubectl:1.34.0
         shell: sh
@@ -307,7 +299,7 @@ jobs:
      
 
       - name: Publish Liquibase evidence
-        if: ${{ inputs.uses_liquibase == 'true' }}
+        enabled: ${{ inputs.liquibase }}
         uses: cloudbees-io/publish-evidence-item@v1
         with:
           content: |
