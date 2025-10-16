@@ -77,15 +77,6 @@ on:
         required: false
         default: "true"
       
-      
-
-    secrets:
-      kubeconfig_secret:
-        required: true
-      db_password:
-        required: false
-      JWT_SECRET:
-        required: false
      
 jobs:
    deploy:
