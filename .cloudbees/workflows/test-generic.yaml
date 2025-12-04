@@ -25,6 +25,7 @@ jobs:
     # Expose a single normalized output to callers
     outputs:
       CODE_COVERAGE: ${{ steps.ChooseCoverage.outputs.CODE_COVERAGE }}
+      TEST_SUMMARY: ${{ steps.ChooseCoverage.outputs.TEST_SUMMARY }}
     steps:
       - name: Checkout source
         uses: cloudbees-io/checkout@v1
@@ -230,6 +231,7 @@ jobs:
         uses: docker://alpine:3.20
         env:
           GO_COV: ${{ steps.GoTests.outputs.CODE_COVERAGE }}
+          GO_TEST: ${{ steps.GoTests.outputs.TEST_SUMMARY }}
           NODE_COV: ${{ steps.NodeTests.outputs.CODE_COVERAGE }}
           PY_COV: ${{ steps.PyTests.outputs.CODE_COVERAGE }}
         run: |
@@ -242,4 +244,10 @@ jobs:
             printf '%s\n' "$PY_COV" > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
           else
             { echo '```'; echo '(no coverage output captured)'; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
+          fi
+
+          if [ -n "${GO_TEST:-}" ]; then
+            printf '%s\n' "$GO_TEST" > "$CLOUDBEES_OUTPUTS/TEST_SUMMARY"
+          else
+            echo "No test summary available" > "$CLOUDBEES_OUTPUTS/TEST_SUMMARY"
           fi
