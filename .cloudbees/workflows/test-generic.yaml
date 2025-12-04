@@ -60,13 +60,13 @@ jobs:
             SKIPPED=$(xmllint --xpath "count(//testcase/skipped)" junit.xml 2>/dev/null || echo "0")
             PASSED=$((TOTAL - FAILED - ERRORS - SKIPPED))
 
-            cat > "$CLOUDBEES_OUTPUTS/TEST_SUMMARY" <<EOF
-**Tests Run:** $TOTAL
-**Passed:** $PASSED ✅
-**Failed:** $FAILED ❌
-**Errors:** $ERRORS ⚠️
-**Skipped:** $SKIPPED ⊘
-EOF
+            {
+              echo "**Tests Run:** $TOTAL"
+              echo "**Passed:** $PASSED"
+              echo "**Failed:** $FAILED"
+              echo "**Errors:** $ERRORS"
+              echo "**Skipped:** $SKIPPED"
+            } > "$CLOUDBEES_OUTPUTS/TEST_SUMMARY"
           else
             echo "No test results available" > "$CLOUDBEES_OUTPUTS/TEST_SUMMARY"
           fi
