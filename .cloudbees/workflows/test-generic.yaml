@@ -25,6 +25,7 @@ jobs:
     # Expose a single normalized output to callers
     outputs:
       CODE_COVERAGE: ${{ steps.ChooseCoverage.outputs.CODE_COVERAGE }}
+      TEST_SUMMARY: ${{ steps.ChooseCoverage.outputs.TEST_SUMMARY }}
     steps:
       - name: Checkout source
         uses: cloudbees-io/checkout@v1
@@ -40,7 +41,7 @@ jobs:
           DEBUG: ${{ inputs.debug }}
         run: |
           set -eu
-          apk add --no-cache git curl
+          apk add --no-cache git curl libxml2-utils
           go install github.com/jstemmer/go-junit-report/v2@latest
 
           set +e
@@ -51,6 +52,25 @@ jobs:
           set -e
 
           "$(go env GOPATH)"/bin/go-junit-report -set-exit-code < test_stdout.txt > junit.xml || true
+
+          # Parse test results from JUnit XML
+          if [ -f junit.xml ]; then
+            TOTAL=$(xmllint --xpath "count(//testcase)" junit.xml 2>/dev/null || echo "0")
+            FAILED=$(xmllint --xpath "count(//testcase/failure)" junit.xml 2>/dev/null || echo "0")
+            ERRORS=$(xmllint --xpath "count(//testcase/error)" junit.xml 2>/dev/null || echo "0")
+            SKIPPED=$(xmllint --xpath "count(//testcase/skipped)" junit.xml 2>/dev/null || echo "0")
+            PASSED=$((TOTAL - FAILED - ERRORS - SKIPPED))
+
+            {
+              echo "**Tests Run:** $TOTAL"
+              echo "**Passed:** $PASSED"
+              echo "**Failed:** $FAILED"
+              echo "**Errors:** $ERRORS"
+              echo "**Skipped:** $SKIPPED"
+            } > "$CLOUDBEES_OUTPUTS/TEST_SUMMARY"
+          else
+            echo "No test results available" > "$CLOUDBEES_OUTPUTS/TEST_SUMMARY"
+          fi
 
           if [ -f coverage.out ]; then
             go tool cover -func=coverage.out > coverage_summary.txt
@@ -77,7 +97,11 @@ jobs:
           format: MARKDOWN
           content: |
             ## Test Stage (Go)
-            Code coverage (if available):
+
+            ### Test Results
+            ${{ steps.GoTests.outputs.TEST_SUMMARY }}
+
+            ### Code Coverage
             ${{ steps.GoTests.outputs.CODE_COVERAGE }}
 
       # ---------------------- NODE ----------------------
@@ -207,6 +231,7 @@ jobs:
         uses: docker://alpine:3.20
         env:
           GO_COV: ${{ steps.GoTests.outputs.CODE_COVERAGE }}
+          GO_TEST: ${{ steps.GoTests.outputs.TEST_SUMMARY }}
           NODE_COV: ${{ steps.NodeTests.outputs.CODE_COVERAGE }}
           PY_COV: ${{ steps.PyTests.outputs.CODE_COVERAGE }}
         run: |
@@ -219,4 +244,10 @@ jobs:
             printf '%s\n' "$PY_COV" > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
           else
             { echo '```'; echo '(no coverage output captured)'; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
+          fi
+
+          if [ -n "${GO_TEST:-}" ]; then
+            printf '%s\n' "$GO_TEST" > "$CLOUDBEES_OUTPUTS/TEST_SUMMARY"
+          else
+            echo "No test summary available" > "$CLOUDBEES_OUTPUTS/TEST_SUMMARY"
           fi
