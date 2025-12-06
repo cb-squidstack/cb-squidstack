@@ -12,11 +12,11 @@ It’s designed to showcase microservice patterns, authentication, role-based ac
 | Service | Type | Status | Purpose | Database |
 |---------|------|--------|---------|----------|
 | [kraken-auth](https://github.com/cb-squidstack/kraken-auth/blob/main/README.md) | Service | ✅ Implemented | Authentication, JWT issuance, role/profile mgmt | **Yes** (`auth` schema) |
-| [squid-ui](https://github.com/cb-squidstack/squid-ui/blob/main/README.md) | Frontend | 🟡 Partially Implemented | React frontend; login & admin screens | No |
-| [codlocker-assets](https://github.com/cb-squidstack/codlocker-assets/blob/main/README.md) | Service | 🔧 In Development | Static asset server for images/files (e.g., product images) | No |
+| [squid-ui](https://github.com/cb-squidstack/squid-ui/blob/main/README.md) | Frontend | 🟡 Partially Implemented | React frontend; login, admin screens, product catalog | No |
+| [codlocker-assets](https://github.com/cb-squidstack/codlocker-assets/blob/main/README.md) | Service | ✅ Implemented | Static asset server for images/files (serves product images) | No |
 | [cuttlefish-orders](https://github.com/cb-squidstack/cuttlefish-orders/blob/main/README.md) | Service | 🔧 In Development | Order processing | **Yes** (`orders`) |
 | [octopus-payments](https://github.com/cb-squidstack/octopus-payments/blob/main/README.md) | Service | 🔧 In Development | Payment simulation | No |
-| [clam-catalog](https://github.com/cb-squidstack/clam-catalog/blob/main/README.md) | Service | 🔧 In Development | Product catalog | **Yes** (`catalog`) |
+| [clam-catalog](https://github.com/cb-squidstack/clam-catalog/blob/main/README.md) | Service | ✅ Implemented | Product catalog with full CRUD operations | **Yes** (`catalog`) |
 | [barnacle-reviews](https://github.com/cb-squidstack/barnacle-reviews/blob/main/README.md) | Service | 🔧 In Development | Product reviews/ratings | **Yes** (`reviews`) |
 | [squid-recommendations](https://github.com/cb-squidstack/squid-recommendations/blob/main/README.md) | Service | 🔧 In Development | Recommendation engine | No |
 | [nautilus-inventory](https://github.com/cb-squidstack/nautilus-inventory/blob/main/README.md) | Service | 🔧 In Development | Inventory/stock tracking | **Yes** (`inventory`) |
@@ -30,15 +30,15 @@ It’s designed to showcase microservice patterns, authentication, role-based ac
 
 - **Implemented:**
   - `kraken-auth` (full DB + JWT + admin APIs + 80+ tests)
+  - `codlocker-assets` (static asset server + storage abstraction + bundled product images)
+  - `clam-catalog` (full CRUD API + Liquibase migrations + 55 product seed data + JWT authorization)
 
 - **Partially implemented:**
-  - `squid-ui` (login/auth integrated, admin user view + 62 tests)
+  - `squid-ui` (login/auth integrated, admin user view, product catalog view + 62 tests)
 
 - **In Development (health checks + infrastructure + 50+ tests each):**
-  - `codlocker-assets` — Static asset server for serving product images and files (may use buckets or serve from container image)
   - `cuttlefish-orders` — Order processing APIs (currently health check only)
   - `octopus-payments` — Payment processing APIs (currently health check only; includes 178 tests)
-  - `clam-catalog` — Product catalog APIs (currently health check only)
   - `barnacle-reviews` — Review and rating APIs (currently health check only)
   - `squid-recommendations` — Recommendation engine APIs (currently health check only)
   - `nautilus-inventory` — Inventory management APIs (currently health check only)
@@ -65,9 +65,10 @@ Test results and code coverage are published to **CloudBees Unify** evidence for
                        ┌───────────────────────────┐
                        │         squid-ui          │
                        │  React frontend (no DB)   │
+                       │  • Login / Admin views    │
+                       │  • Product catalog view   │
                        └────────────┬──────────────┘
-                                    │  Login / Admin APIs
-                                    │  Fetches images from codlocker-assets
+                                    │  Calls APIs, fetches product images
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                        kraken-auth (service + DB)                           │
@@ -82,9 +83,22 @@ Test results and code coverage are published to **CloudBees Unify** evidence for
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                     codlocker-assets (static asset server)                  │
-│  • Serves product images, files, and other static assets                    │
-│  • Assets may be stored in buckets or bundled in container image            │
-│  • Used by squid-ui and other services for displaying product images        │
+│  • Serves product images via /assets/* endpoint                             │
+│  • Storage abstraction layer (local filesystem, future: S3/GCS)             │
+│  • 55 placeholder product images bundled in container                       │
+│  • Used by squid-ui for product image display                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       clam-catalog (service + DB)                           │
+│  • Product catalog CRUD API with JWT authorization                          │
+│  • PostgreSQL (schema: catalog)                                             │
+│  • Public read endpoints, protected admin write endpoints                   │
+│                                                                             │
+│  Tables:                                                                    │
+│   - products (55 seeded: Electronics, Clothing, Home, Sports, Books)        │
+│     Fields: id, name, description, price, images[], category, sku,          │
+│             stock_count, tags[], rating, review_count, timestamps           │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 Other services (in development, health check + infrastructure only)
@@ -92,10 +106,9 @@ Other services (in development, health check + infrastructure only)
 DB = Yes                                DB = No
 ────────────────                        ────────────────
 • cuttlefish-orders  (schema: orders)   • octopus-payments
-• clam-catalog       (schema: catalog)  • squid-recommendations
-• barnacle-reviews   (schema: reviews)  • jellyfish-notifications
-• nautilus-inventory (schema: inventory)• manta-delivery
-• urchin-analytics   (schema: analytics)
+• barnacle-reviews   (schema: reviews)  • squid-recommendations
+• nautilus-inventory (schema: inventory)• jellyfish-notifications
+• urchin-analytics   (schema: analytics)• manta-delivery
 ```
 
 ---
