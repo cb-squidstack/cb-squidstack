@@ -372,62 +372,10 @@ jobs:
           echo "[envcode] environment label: '${code}'"
           printf '%s' "$code" > "$CLOUDBEES_OUTPUTS/code"
 
-      - name: Fetch and merge environment labels
-        id: merge-labels
-        uses: docker://badouralix/curl-jq-yq:latest
-        shell: sh
-        env:
-          CB_API_TOKEN: ${{ secrets.sb_internal_api }}
-          ARTIFACT_ID: ${{ inputs.artifact_id }}
-          CB_ORG_ID: "8d16bd77-d506-45e6-a0f4-8884ce16d301"
-          NEW_ENV_LABEL: d.${{ steps.envcode.outputs.code }}=true
-        run: |
-          set -eu
-
-          echo "Fetching current artifact labels..."
-          RESPONSE=$(curl -sS \
-            "https://api.cloudbees.io/v1/artifact-infos/${ARTIFACT_ID}" \
-            -H "Authorization: Bearer ${CB_API_TOKEN}" \
-            -H "Content-Type: application/json")
-
-          echo "Current artifact response:"
-          echo "$RESPONSE" | jq '.'
-
-          # Check if artifact was found
-          if echo "$RESPONSE" | jq -e '.code' >/dev/null 2>&1; then
-            echo "Warning: Artifact not found or error fetching - will use only new label"
-            EXISTING_D_LABELS=""
-          else
-            # Extract existing d.* labels
-            EXISTING_D_LABELS=$(echo "$RESPONSE" | jq -r '.labels[]? // empty | select(startswith("d."))' | sort -u)
-          fi
-
-          echo "Existing d.* labels:"
-          echo "$EXISTING_D_LABELS"
-
-          # Build combined list of d.* labels
-          ALL_D_LABELS=""
-          for label in $EXISTING_D_LABELS; do
-            if [ "$label" != "${NEW_ENV_LABEL}" ]; then
-              if [ -z "$ALL_D_LABELS" ]; then
-                ALL_D_LABELS="$label"
-              else
-                ALL_D_LABELS="${ALL_D_LABELS}, $label"
-              fi
-            fi
-          done
-
-          # Add the new environment label
-          if [ -z "$ALL_D_LABELS" ]; then
-            ALL_D_LABELS="${NEW_ENV_LABEL}"
-          else
-            ALL_D_LABELS="${ALL_D_LABELS}, ${NEW_ENV_LABEL}"
-          fi
-
-          echo "Merged environment labels: ${ALL_D_LABELS}"
-          printf '%s' "$ALL_D_LABELS" > "$CLOUDBEES_OUTPUTS/env_labels"
-
       - name: Register deployed artifact
+        # Note: register-deployed-artifact overwrites labels on each deployment
+        # instead of accumulating them. This means only the most recent environment
+        # label (d.<env>=true) is retained. Issue reported to CloudBees.
         kind: deploy
         uses: cloudbees-io/register-deployed-artifact@v2
         with:
@@ -437,4 +385,4 @@ jobs:
             ver=${{ steps.short-ver.outputs.ver }},
             sha=${{ steps.short-sha.outputs.sha12 }},
             ts=${{ steps.now.outputs.ts }},
-            ${{ steps.merge-labels.outputs.env_labels }}
+            d.${{ steps.envcode.outputs.code }}=true
