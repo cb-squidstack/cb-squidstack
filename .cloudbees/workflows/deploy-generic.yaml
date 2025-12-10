@@ -357,7 +357,7 @@ jobs:
         run: |
           date -u +"%Y%m%dT%H%M%SZ" > "$CLOUDBEES_OUTPUTS/ts"   # e.g. 20250925T112716Z
       
-      - name: Short env code
+      - name: Environment name for label
         id: envcode
         uses: docker://alpine:3.20
         shell: sh
@@ -366,20 +366,10 @@ jobs:
         run: |
           set -eu
           echo "[envcode] raw: '${ENV_NAME}'"
-          n="$(printf '%s' "$ENV_NAME" | tr '[:upper:]' '[:lower:]')"
-          echo "[envcode] lowercased: '${n}'"
-
-          code=""
-          case "$n" in
-            # Order matters: check preprod/stage before prod so 'preprod' doesn't match '*prod*'
-            *preprod*|*pre-prod*|*staging*|*stage*|*uat*|*pre*) code="preprod" ;;
-            *dev*|*development*)                                   code="dev" ;;
-            *prod*|*production*)                                   code="prod" ;;
-            *test*|*testing*|*qa*)                                 code="test" ;;
-            *)                                                     code="$(printf '%s' "$n" | tr -cd 'a-z0-9' | cut -c1-8)"; [ -n "$code" ] || code="env" ;;
-          esac
-
-          echo "[envcode] resolved code: '${code}'"
+          # Use the full environment name as-is (lowercase, keep hyphens/numbers)
+          # This ensures each environment gets a unique label: d.<env-name>=true
+          code="$(printf '%s' "$ENV_NAME" | tr '[:upper:]' '[:lower:]')"
+          echo "[envcode] environment label: '${code}'"
           printf '%s' "$code" > "$CLOUDBEES_OUTPUTS/code"
       
       - name: Register deployed artifact  
