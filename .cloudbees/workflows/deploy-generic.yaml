@@ -386,15 +386,21 @@ jobs:
 
           echo "Fetching current artifact labels..."
           RESPONSE=$(curl -sS \
-            "https://api.cloudbees.io/v3/organizations/${CB_ORG_ID}/artifactinfos/${ARTIFACT_ID}" \
+            "https://api.cloudbees.io/v1/artifact-infos/${ARTIFACT_ID}" \
             -H "Authorization: Bearer ${CB_API_TOKEN}" \
             -H "Content-Type: application/json")
 
           echo "Current artifact response:"
           echo "$RESPONSE" | jq '.'
 
-          # Extract existing d.* labels
-          EXISTING_D_LABELS=$(echo "$RESPONSE" | jq -r '.artifact.labels[]? // empty | select(startswith("d."))' | sort -u)
+          # Check if artifact was found
+          if echo "$RESPONSE" | jq -e '.code' >/dev/null 2>&1; then
+            echo "Warning: Artifact not found or error fetching - will use only new label"
+            EXISTING_D_LABELS=""
+          else
+            # Extract existing d.* labels
+            EXISTING_D_LABELS=$(echo "$RESPONSE" | jq -r '.labels[]? // empty | select(startswith("d."))' | sort -u)
+          fi
 
           echo "Existing d.* labels:"
           echo "$EXISTING_D_LABELS"
