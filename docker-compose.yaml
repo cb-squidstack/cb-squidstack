@@ -105,6 +105,71 @@ services:
     networks:
       - squidstack-net
 
+  reef-feed-aggregator:
+    build:
+      context: ../cb-squidstack-reef/reef-feed-aggregator
+    ports:
+      - "8091:8080" # unique host port
+    environment:
+      - JWT_SECRET=footest
+      - FM_NAMESPACE=squidstack
+      - REEF_EU_URL=http://reef-eu:8080
+      - REEF_NA_URL=http://reef-na:8080
+      - REEF_SA_URL=http://reef-sa:8080
+      - REEF_ASIA_URL=http://reef-asia:8080
+    volumes:
+      - ./fm-key-local.txt:/app/config/fm.json:ro
+    networks:
+      - squidstack-net
+
+  reef-eu:
+    build:
+      context: ../cb-squidstack-reef/reef-eu
+    ports:
+      - "8092:8080" # unique host port
+    environment:
+      - FM_NAMESPACE=squidstack
+    volumes:
+      - ./fm-key-local.txt:/app/config/fm.json:ro
+    networks:
+      - squidstack-net
+
+  reef-na:
+    build:
+      context: ../cb-squidstack-reef/reef-na
+    ports:
+      - "8093:8080" # unique host port
+    environment:
+      - FM_NAMESPACE=squidstack
+    volumes:
+      - ./fm-key-local.txt:/app/config/fm.json:ro
+    networks:
+      - squidstack-net
+
+  reef-sa:
+    build:
+      context: ../cb-squidstack-reef/reef-sa
+    ports:
+      - "8094:8080" # unique host port
+    environment:
+      - FM_NAMESPACE=squidstack
+    volumes:
+      - ./fm-key-local.txt:/app/config/fm.json:ro
+    networks:
+      - squidstack-net
+
+  reef-asia:
+    build:
+      context: ../cb-squidstack-reef/reef-asia
+    ports:
+      - "8095:8080" # unique host port
+    environment:
+      - FM_NAMESPACE=squidstack
+    volumes:
+      - ./fm-key-local.txt:/app/config/fm.json:ro
+    networks:
+      - squidstack-net
+
 networks:
   squidstack-net:
     driver: bridge
