@@ -108,10 +108,9 @@ jobs:
             S=$(printf '%s' "$IDS" | sed -e 's/^map\[//' -e 's/\]$//')
             FIRST=$(printf '%s' "$S" | awk '{print $1}')
             ART_ID=$(printf '%s' "$FIRST" | awk -F: '{print $NF}')
-          elif printf '%s' "$IDS" | grep -q '^{.*}$'; then
-            S=$(printf '%s' "$IDS" | tr -d '{}"')
-            FIRST=$(printf '%s' "$S" | tr ',' '\n' | sed -n '1p')
-            ART_ID=$(printf '%s' "$FIRST" | awk -F: '{print $NF}')
+          elif printf '%s' "$IDS" | grep -q '^{'; then
+            # Extract UUID using grep with regex pattern (handles multiline JSON)
+            ART_ID=$(printf '%s' "$IDS" | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | head -n 1)
           else
             FIRST=$(printf '%s' "$IDS" | tr ', ' '\n' | sed -n '1p')
             ART_ID=$(printf '%s' "$FIRST" | awk -F: '{print $NF}')
