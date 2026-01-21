@@ -19,6 +19,10 @@ on:
         type: string
         required: false
         default: "false"
+    secrets:
+      launchable_token:
+        required: false
+        description: "CloudBees Smart Tests API token (optional - enables test optimization)"
 
 jobs:
   test:
@@ -119,6 +123,9 @@ jobs:
           REACT_APP_LOGIN_LABEL: "Login"
           REACT_APP_SHOW_BETA: "1"
           REACT_APP_SHOW_DEBUG_FOOTER: "1"
+          # >>> CloudBees Smart Tests integration <<<
+          LAUNCHABLE_TOKEN: ${{ secrets.launchable_token }}
+          CLOUDBEES_BUILD_ID: ${{ cloudbees.run_id }}
         run: |
           set -eu
           apk add --no-cache git libxml2-utils
@@ -126,26 +133,102 @@ jobs:
           npm ci
           npm i -D jest-junit
 
+          # ========== CloudBees Smart Tests Integration START ==========
+          # Install Launchable CLI (optional, only if token provided)
+          if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
+            echo "=== Installing CloudBees Smart Tests CLI ==="
+            npm install -g @launchable/cli || {
+              echo "Warning: Launchable CLI install failed, continuing without Smart Tests"
+              unset LAUNCHABLE_TOKEN
+            }
+          fi
+
+          # Record build to Smart Tests
+          if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
+            echo "=== Recording build to Smart Tests ==="
+            launchable record build --name "${CLOUDBEES_BUILD_ID}" || {
+              echo "Warning: Build recording failed, continuing without Smart Tests"
+              unset LAUNCHABLE_TOKEN
+            }
+          fi
+
+          # Create test session
+          if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
+            echo "=== Creating Smart Tests session ==="
+            launchable record session --build "${CLOUDBEES_BUILD_ID}" > /tmp/launchable-session.txt || {
+              echo "Warning: Session creation failed, running all tests"
+              unset LAUNCHABLE_TOKEN
+            }
+          fi
+
+          # Get test subset
+          if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
+            echo "=== Getting Smart Tests subset ==="
+            launchable subset --session "$(cat /tmp/launchable-session.txt)" file > /tmp/launchable-subset.txt || {
+              echo "Warning: Subset generation failed, running all tests"
+              rm -f /tmp/launchable-subset.txt
+            }
+
+            if [ -s /tmp/launchable-subset.txt ]; then
+              echo "=== Smart Tests subset generated ==="
+              cat /tmp/launchable-subset.txt
+            fi
+          fi
+          # ========== CloudBees Smart Tests Integration END ==========
+
           set +e
           set -o pipefail
-          npx react-scripts test --watchAll=false \
-            --reporters=default --reporters=jest-junit \
-            --coverage \
-            --coverageReporters=text --coverageReporters=json-summary \
-            --collectCoverageFrom="${COVERAGE_ROOT}/**/*.{js,jsx,ts,tsx}" \
-            --collectCoverageFrom="!${COVERAGE_ROOT}/**/*.test.{js,jsx,ts,tsx}" \
-            --collectCoverageFrom="!${COVERAGE_ROOT}/**/__tests__/**" \
-            --collectCoverageFrom="!${COVERAGE_ROOT}/**/__mocks__/**" \
-            --collectCoverageFrom="!${COVERAGE_ROOT}/**/mocks/**" \
-            --collectCoverageFrom="!${COVERAGE_ROOT}/**/*.{story,stories}.{js,jsx,ts,tsx}" \
-            --collectCoverageFrom="!${COVERAGE_ROOT}/setupTests.{js,ts,tsx}" \
-            --collectCoverageFrom="!${COVERAGE_ROOT}/index.{js,jsx,ts,tsx}" \
-            --collectCoverageFrom="!${COVERAGE_ROOT}/main.{js,jsx,ts,tsx}" \
-            --collectCoverageFrom="!**/*.d.ts" \
-          | tee coverage_stdout.txt
+
+          # Run tests (subset or all)
+          if [ -n "${LAUNCHABLE_TOKEN:-}" ] && [ -s /tmp/launchable-subset.txt ]; then
+            echo "=== Running Smart Tests subset ==="
+            # Convert subset file to Jest testPathPattern
+            SUBSET_PATTERN=$(cat /tmp/launchable-subset.txt | sed 's|^./||' | paste -sd '|' -)
+            npx react-scripts test --watchAll=false \
+              --reporters=default --reporters=jest-junit \
+              --coverage \
+              --coverageReporters=text --coverageReporters=json-summary \
+              --collectCoverageFrom="${COVERAGE_ROOT}/**/*.{js,jsx,ts,tsx}" \
+              --collectCoverageFrom="!${COVERAGE_ROOT}/**/*.test.{js,jsx,ts,tsx}" \
+              --collectCoverageFrom="!${COVERAGE_ROOT}/**/__tests__/**" \
+              --collectCoverageFrom="!${COVERAGE_ROOT}/**/__mocks__/**" \
+              --collectCoverageFrom="!${COVERAGE_ROOT}/**/mocks/**" \
+              --collectCoverageFrom="!${COVERAGE_ROOT}/**/*.{story,stories}.{js,jsx,ts,tsx}" \
+              --collectCoverageFrom="!${COVERAGE_ROOT}/setupTests.{js,ts,tsx}" \
+              --collectCoverageFrom="!${COVERAGE_ROOT}/index.{js,jsx,ts,tsx}" \
+              --collectCoverageFrom="!${COVERAGE_ROOT}/main.{js,jsx,ts,tsx}" \
+              --collectCoverageFrom="!**/*.d.ts" \
+              --testPathPattern="${SUBSET_PATTERN}" \
+            | tee coverage_stdout.txt
+          else
+            echo "=== Running all tests (Smart Tests not active) ==="
+            npx react-scripts test --watchAll=false \
+              --reporters=default --reporters=jest-junit \
+              --coverage \
+              --coverageReporters=text --coverageReporters=json-summary \
+              --collectCoverageFrom="${COVERAGE_ROOT}/**/*.{js,jsx,ts,tsx}" \
+              --collectCoverageFrom="!${COVERAGE_ROOT}/**/*.test.{js,jsx,ts,tsx}" \
+              --collectCoverageFrom="!${COVERAGE_ROOT}/**/__tests__/**" \
+              --collectCoverageFrom="!${COVERAGE_ROOT}/**/__mocks__/**" \
+              --collectCoverageFrom="!${COVERAGE_ROOT}/**/mocks/**" \
+              --collectCoverageFrom="!${COVERAGE_ROOT}/**/*.{story,stories}.{js,jsx,ts,tsx}" \
+              --collectCoverageFrom="!${COVERAGE_ROOT}/setupTests.{js,ts,tsx}" \
+              --collectCoverageFrom="!${COVERAGE_ROOT}/index.{js,jsx,ts,tsx}" \
+              --collectCoverageFrom="!${COVERAGE_ROOT}/main.{js,jsx,ts,tsx}" \
+              --collectCoverageFrom="!**/*.d.ts" \
+            | tee coverage_stdout.txt
+          fi
           STATUS=$?
           set +o pipefail
           set -e
+
+          # Record test results to Smart Tests
+          if [ -n "${LAUNCHABLE_TOKEN:-}" ] && [ -f junit.xml ]; then
+            echo "=== Recording test results to Smart Tests ==="
+            launchable record tests --session "$(cat /tmp/launchable-session.txt)" file junit.xml || {
+              echo "Warning: Test result recording failed"
+            }
+          fi
 
           # Parse test results from JUnit XML
           if [ -f junit.xml ]; then
