@@ -19,10 +19,6 @@ on:
         type: string
         required: false
         default: "false"
-    secrets:
-      launchable_token:
-        required: false
-        description: "CloudBees Smart Tests API token (optional - enables test optimization)"
 
 jobs:
   test:
@@ -124,7 +120,7 @@ jobs:
           REACT_APP_SHOW_BETA: "1"
           REACT_APP_SHOW_DEBUG_FOOTER: "1"
           # >>> CloudBees Smart Tests integration <<<
-          LAUNCHABLE_TOKEN: ${{ secrets.launchable_token }}
+          LAUNCHABLE_TOKEN: ${{ secrets.LAUNCHABLE_TOKEN }}
           CLOUDBEES_BUILD_ID: ${{ cloudbees.run_id }}
         run: |
           set -eu
