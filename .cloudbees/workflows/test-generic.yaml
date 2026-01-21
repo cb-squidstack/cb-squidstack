@@ -106,7 +106,15 @@ jobs:
           if [ -n "${LAUNCHABLE_TOKEN:-}" ] && [ -s /tmp/launchable-subset.txt ]; then
             echo "=== Running Smart Tests subset ==="
             # Convert file list to Go package paths for testing
-            SUBSET_PACKAGES=$(cat /tmp/launchable-subset.txt | xargs -I {} dirname {} | sort -u | paste -sd ' ' -)
+            # For each test file, get its directory and prefix with ./ (but handle root . specially)
+            SUBSET_PACKAGES=$(cat /tmp/launchable-subset.txt | while read f; do
+              dir=$(dirname "$f")
+              if [ "$dir" = "." ]; then
+                echo "."
+              else
+                echo "./$dir"
+              fi
+            done | sort -u | paste -sd ' ' -)
             go test ${SUBSET_PACKAGES} -v -coverprofile=coverage.out 2>&1 | tee test_stdout.txt
           else
             echo "=== Running all tests (Smart Tests not active) ==="
@@ -116,7 +124,28 @@ jobs:
           set +o pipefail
           set -e
 
-          "$(go env GOPATH)"/bin/go-junit-report -set-exit-code < test_stdout.txt > junit.xml || true
+          # Convert JSON output to JUnit XML with file mapping
+          if [ -n "${LAUNCHABLE_TOKEN:-}" ] && [ -s /tmp/launchable-subset.txt ]; then
+            # Use go-junit-report and then add file attributes via sed
+            "$(go env GOPATH)"/bin/go-junit-report -set-exit-code < test_stdout.txt > junit_temp.xml || true
+
+            # Add file attribute to testcases by matching package names
+            cp junit_temp.xml junit.xml
+            while read test_file; do
+              pkg=$(dirname "$test_file" | sed 's|^\./||')
+              if [ "$pkg" = "." ]; then
+                pkg="${APP_NAME}"
+              else
+                pkg="${APP_NAME}/$pkg"
+              fi
+              # Add file="$test_file" to testcases in matching testsuite
+              sed "s|<testsuite name=\"$pkg\"|<testsuite name=\"$pkg\" file=\"$test_file\"|g" junit.xml > junit_new.xml || true
+              mv junit_new.xml junit.xml
+            done < /tmp/launchable-subset.txt
+            rm -f junit_temp.xml
+          else
+            "$(go env GOPATH)"/bin/go-junit-report -set-exit-code < test_stdout.txt > junit.xml || true
+          fi
 
           # Record test results to Smart Tests
           if [ -n "${LAUNCHABLE_TOKEN:-}" ] && [ -f junit.xml ]; then
