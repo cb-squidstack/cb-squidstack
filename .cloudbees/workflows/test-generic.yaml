@@ -133,8 +133,8 @@ jobs:
           # Install Launchable CLI (optional, only if token provided)
           if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             echo "=== Installing CloudBees Smart Tests CLI ==="
-            apk add --no-cache python3 py3-pip || {
-              echo "Warning: Python installation failed, continuing without Smart Tests"
+            apk add --no-cache python3 py3-pip openjdk17-jre-headless || {
+              echo "Warning: Dependencies installation failed, continuing without Smart Tests"
               unset LAUNCHABLE_TOKEN
             }
             if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
