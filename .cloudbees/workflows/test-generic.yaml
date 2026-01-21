@@ -39,19 +39,92 @@ jobs:
         env:
           CI: "true"
           DEBUG: ${{ inputs.debug }}
+          # >>> CloudBees Smart Tests integration <<<
+          APP_NAME: ${{ inputs.app_name }}
+          LAUNCHABLE_TOKEN: ${{ secrets.LAUNCHABLE_TOKEN }}
+          CLOUDBEES_BUILD_ID: ${{ cloudbees.run_id }}
         run: |
           set -eu
           apk add --no-cache git curl libxml2-utils
           go install github.com/jstemmer/go-junit-report/v2@latest
 
+          # ========== CloudBees Smart Tests Integration START ==========
+          # Install Launchable CLI (optional, only if token provided)
+          if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
+            echo "=== Installing CloudBees Smart Tests CLI ==="
+            apk add --no-cache python3 py3-pip openjdk17-jre-headless || {
+              echo "Warning: Dependencies installation failed, continuing without Smart Tests"
+              unset LAUNCHABLE_TOKEN
+            }
+            if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
+              pip3 install launchable --break-system-packages || {
+                echo "Warning: Launchable CLI install failed, continuing without Smart Tests"
+                unset LAUNCHABLE_TOKEN
+              }
+            fi
+          fi
+
+          # Record build to Smart Tests
+          if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
+            echo "=== Recording build to Smart Tests ==="
+            launchable record build --name "cb-squidstack-${APP_NAME}-${CLOUDBEES_BUILD_ID}" || {
+              echo "Warning: Build recording failed, continuing without Smart Tests"
+              unset LAUNCHABLE_TOKEN
+            }
+          fi
+
+          # Create test session
+          if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
+            echo "=== Creating Smart Tests session ==="
+            launchable record session --build "cb-squidstack-${APP_NAME}-${CLOUDBEES_BUILD_ID}" > /tmp/launchable-session.txt || {
+              echo "Warning: Session creation failed, running all tests"
+              unset LAUNCHABLE_TOKEN
+            }
+          fi
+
+          # Get test subset
+          if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
+            echo "=== Getting Smart Tests subset ==="
+            # Generate list of all Go test files and pipe to subset command
+            find . -type f -name "*_test.go" | \
+              launchable subset --session "$(cat /tmp/launchable-session.txt)" file > /tmp/launchable-subset.txt || {
+              echo "Warning: Subset generation failed, running all tests"
+              rm -f /tmp/launchable-subset.txt
+            }
+
+            if [ -s /tmp/launchable-subset.txt ]; then
+              echo "=== Smart Tests subset generated ==="
+              cat /tmp/launchable-subset.txt
+            fi
+          fi
+          # ========== CloudBees Smart Tests Integration END ==========
+
           set +e
           set -o pipefail
-          go test ./... -v -coverprofile=coverage.out 2>&1 | tee test_stdout.txt
+
+          # Run tests (subset or all)
+          if [ -n "${LAUNCHABLE_TOKEN:-}" ] && [ -s /tmp/launchable-subset.txt ]; then
+            echo "=== Running Smart Tests subset ==="
+            # Convert file list to Go package paths for testing
+            SUBSET_PACKAGES=$(cat /tmp/launchable-subset.txt | xargs -I {} dirname {} | sort -u | paste -sd ' ' -)
+            go test ${SUBSET_PACKAGES} -v -coverprofile=coverage.out 2>&1 | tee test_stdout.txt
+          else
+            echo "=== Running all tests (Smart Tests not active) ==="
+            go test ./... -v -coverprofile=coverage.out 2>&1 | tee test_stdout.txt
+          fi
           STATUS=$?
           set +o pipefail
           set -e
 
           "$(go env GOPATH)"/bin/go-junit-report -set-exit-code < test_stdout.txt > junit.xml || true
+
+          # Record test results to Smart Tests
+          if [ -n "${LAUNCHABLE_TOKEN:-}" ] && [ -f junit.xml ]; then
+            echo "=== Recording test results to Smart Tests ==="
+            launchable record tests --session "$(cat /tmp/launchable-session.txt)" file junit.xml || {
+              echo "Warning: Test result recording failed"
+            }
+          fi
 
           # Parse test results from JUnit XML
           if [ -f junit.xml ]; then
