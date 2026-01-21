@@ -127,35 +127,23 @@ jobs:
           # Convert JSON output to JUnit XML
           "$(go env GOPATH)"/bin/go-junit-report -set-exit-code < test_stdout.txt > junit.xml || true
 
-          # Add file attributes to JUnit XML for Smart Tests file profile
+          # Add file attributes to JUnit XML for Smart Tests file profile (using awk instead of Python)
           if [ -n "${LAUNCHABLE_TOKEN:-}" ] && [ -f junit.xml ] && [ -s /tmp/launchable-subset.txt ]; then
             echo "=== Adding file attributes to JUnit XML ==="
-            cat > /tmp/add_file_attrs.py << 'EOF'
-import xml.etree.ElementTree as ET
-import os
-
-test_files = {}
-with open('/tmp/launchable-subset.txt') as f:
-    for line in f:
-        test_file = line.strip()
-        pkg_dir = os.path.dirname(test_file).lstrip('./')
-        if pkg_dir == '' or pkg_dir == '.':
-            pkg_name = os.environ.get('APP_NAME', 'main')
-        else:
-            pkg_name = os.environ.get('APP_NAME', 'main') + '/' + pkg_dir
-        test_files[pkg_name] = test_file
-
-tree = ET.parse('junit.xml')
-root = tree.getroot()
-
-for testsuite in root.findall('.//testsuite'):
-    suite_name = testsuite.get('name')
-    if suite_name in test_files:
-        testsuite.set('file', test_files[suite_name])
-
-tree.write('junit.xml', encoding='utf-8', xml_declaration=True)
-EOF
-            python3 /tmp/add_file_attrs.py || echo "Warning: Failed to add file attributes"
+            # Build package->file mapping
+            while read test_file; do
+              pkg_dir=$(dirname "$test_file" | sed 's|^\./||')
+              if [ "$pkg_dir" = "." ]; then
+                pkg_name="${APP_NAME}"
+              else
+                pkg_name="${APP_NAME}/$pkg_dir"
+              fi
+              # Use xmllint to add file attribute to matching testsuite (only once per package)
+              if ! grep -q "<testsuite.*name=\"$pkg_name\".*file=" junit.xml; then
+                sed -i.bak "s|<testsuite name=\"$pkg_name\"|<testsuite name=\"$pkg_name\" file=\"$test_file\"|" junit.xml
+              fi
+            done < /tmp/launchable-subset.txt
+            rm -f junit.xml.bak
           fi
 
           # Record test results to Smart Tests
