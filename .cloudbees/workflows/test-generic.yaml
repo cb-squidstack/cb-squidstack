@@ -133,10 +133,16 @@ jobs:
           # Install Launchable CLI (optional, only if token provided)
           if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             echo "=== Installing CloudBees Smart Tests CLI ==="
-            npm install -g @launchable/cli || {
-              echo "Warning: Launchable CLI install failed, continuing without Smart Tests"
+            apk add --no-cache python3 py3-pip || {
+              echo "Warning: Python installation failed, continuing without Smart Tests"
               unset LAUNCHABLE_TOKEN
             }
+            if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
+              pip3 install launchable --break-system-packages || {
+                echo "Warning: Launchable CLI install failed, continuing without Smart Tests"
+                unset LAUNCHABLE_TOKEN
+              }
+            fi
           fi
 
           # Record build to Smart Tests
