@@ -124,27 +124,41 @@ jobs:
           set +o pipefail
           set -e
 
-          # Convert JSON output to JUnit XML with file mapping
-          if [ -n "${LAUNCHABLE_TOKEN:-}" ] && [ -s /tmp/launchable-subset.txt ]; then
-            # Use go-junit-report and then add file attributes via sed
-            "$(go env GOPATH)"/bin/go-junit-report -set-exit-code < test_stdout.txt > junit_temp.xml || true
+          # Convert JSON output to JUnit XML
+          "$(go env GOPATH)"/bin/go-junit-report -set-exit-code < test_stdout.txt > junit.xml || true
 
-            # Add file attribute to testcases by matching package names
-            cp junit_temp.xml junit.xml
-            while read test_file; do
-              pkg=$(dirname "$test_file" | sed 's|^\./||')
-              if [ "$pkg" = "." ]; then
-                pkg="${APP_NAME}"
-              else
-                pkg="${APP_NAME}/$pkg"
-              fi
-              # Add file="$test_file" to testcases in matching testsuite
-              sed "s|<testsuite name=\"$pkg\"|<testsuite name=\"$pkg\" file=\"$test_file\"|g" junit.xml > junit_new.xml || true
-              mv junit_new.xml junit.xml
-            done < /tmp/launchable-subset.txt
-            rm -f junit_temp.xml
-          else
-            "$(go env GOPATH)"/bin/go-junit-report -set-exit-code < test_stdout.txt > junit.xml || true
+          # Add file attributes to JUnit XML for Smart Tests file profile
+          if [ -n "${LAUNCHABLE_TOKEN:-}" ] && [ -f junit.xml ] && [ -s /tmp/launchable-subset.txt ]; then
+            # Create a Python script to add file attributes to testsuites
+            python3 << 'PYTHON_EOF'
+import xml.etree.ElementTree as ET
+import sys
+import os
+
+# Read test file mapping
+test_files = {}
+with open('/tmp/launchable-subset.txt') as f:
+    for line in f:
+        test_file = line.strip()
+        pkg_dir = os.path.dirname(test_file).lstrip('./')
+        if pkg_dir == '' or pkg_dir == '.':
+            pkg_name = os.environ.get('APP_NAME', 'main')
+        else:
+            pkg_name = f"{os.environ.get('APP_NAME', 'main')}/{pkg_dir}"
+        test_files[pkg_name] = test_file
+
+# Parse and modify JUnit XML
+tree = ET.parse('junit.xml')
+root = tree.getroot()
+
+for testsuite in root.findall('.//testsuite'):
+    suite_name = testsuite.get('name')
+    if suite_name in test_files:
+        testsuite.set('file', test_files[suite_name])
+
+# Write back
+tree.write('junit.xml', encoding='utf-8', xml_declaration=True)
+PYTHON_EOF
           fi
 
           # Record test results to Smart Tests
