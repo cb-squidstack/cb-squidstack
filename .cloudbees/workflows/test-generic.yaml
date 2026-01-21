@@ -169,7 +169,7 @@ jobs:
           if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             echo "=== Getting Smart Tests subset ==="
             # Generate list of all test files and pipe to subset command
-            find src -name "*.test.js" -o -name "*.test.jsx" -o -name "*.test.ts" -o -name "*.test.tsx" | \
+            find src -type f \( -name "*.test.js" -o -name "*.test.jsx" -o -name "*.test.ts" -o -name "*.test.tsx" \) | \
               launchable subset --session "$(cat /tmp/launchable-session.txt)" file > /tmp/launchable-subset.txt || {
               echo "Warning: Subset generation failed, running all tests"
               rm -f /tmp/launchable-subset.txt
