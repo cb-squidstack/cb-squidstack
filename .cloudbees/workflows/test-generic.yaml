@@ -113,6 +113,7 @@ jobs:
         env:
           CI: "true"
           JEST_JUNIT_OUTPUT: ${{ cloudbees.workspace }}/junit.xml
+          JEST_JUNIT_ADD_FILE_ATTRIBUTE: "true"
           COVERAGE_ROOT: ${{ inputs.coverage_root }}
           DEBUG: ${{ inputs.debug }}
           # >>> make tests deterministic <<<
@@ -120,6 +121,7 @@ jobs:
           REACT_APP_SHOW_BETA: "1"
           REACT_APP_SHOW_DEBUG_FOOTER: "1"
           # >>> CloudBees Smart Tests integration <<<
+          APP_NAME: ${{ inputs.app_name }}
           LAUNCHABLE_TOKEN: ${{ secrets.LAUNCHABLE_TOKEN }}
           CLOUDBEES_BUILD_ID: ${{ cloudbees.run_id }}
         run: |
@@ -148,7 +150,7 @@ jobs:
           # Record build to Smart Tests
           if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             echo "=== Recording build to Smart Tests ==="
-            launchable record build --name "${CLOUDBEES_BUILD_ID}" || {
+            launchable record build --name "cb-squidstack/${APP_NAME}-${CLOUDBEES_BUILD_ID}" || {
               echo "Warning: Build recording failed, continuing without Smart Tests"
               unset LAUNCHABLE_TOKEN
             }
@@ -157,7 +159,7 @@ jobs:
           # Create test session
           if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             echo "=== Creating Smart Tests session ==="
-            launchable record session --build "${CLOUDBEES_BUILD_ID}" > /tmp/launchable-session.txt || {
+            launchable record session --build "cb-squidstack/${APP_NAME}-${CLOUDBEES_BUILD_ID}" > /tmp/launchable-session.txt || {
               echo "Warning: Session creation failed, running all tests"
               unset LAUNCHABLE_TOKEN
             }
