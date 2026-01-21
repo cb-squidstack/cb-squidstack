@@ -129,13 +129,11 @@ jobs:
 
           # Add file attributes to JUnit XML for Smart Tests file profile
           if [ -n "${LAUNCHABLE_TOKEN:-}" ] && [ -f junit.xml ] && [ -s /tmp/launchable-subset.txt ]; then
-            # Create a Python script to add file attributes to testsuites
-            python3 << 'PYTHON_EOF'
+            echo "=== Adding file attributes to JUnit XML ==="
+            cat > /tmp/add_file_attrs.py << 'EOF'
 import xml.etree.ElementTree as ET
-import sys
 import os
 
-# Read test file mapping
 test_files = {}
 with open('/tmp/launchable-subset.txt') as f:
     for line in f:
@@ -144,10 +142,9 @@ with open('/tmp/launchable-subset.txt') as f:
         if pkg_dir == '' or pkg_dir == '.':
             pkg_name = os.environ.get('APP_NAME', 'main')
         else:
-            pkg_name = f"{os.environ.get('APP_NAME', 'main')}/{pkg_dir}"
+            pkg_name = os.environ.get('APP_NAME', 'main') + '/' + pkg_dir
         test_files[pkg_name] = test_file
 
-# Parse and modify JUnit XML
 tree = ET.parse('junit.xml')
 root = tree.getroot()
 
@@ -156,9 +153,9 @@ for testsuite in root.findall('.//testsuite'):
     if suite_name in test_files:
         testsuite.set('file', test_files[suite_name])
 
-# Write back
 tree.write('junit.xml', encoding='utf-8', xml_declaration=True)
-PYTHON_EOF
+EOF
+            python3 /tmp/add_file_attrs.py || echo "Warning: Failed to add file attributes"
           fi
 
           # Record test results to Smart Tests
