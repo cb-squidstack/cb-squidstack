@@ -28,7 +28,7 @@ jobs:
       TEST_SUMMARY: ${{ steps.ChooseCoverage.outputs.TEST_SUMMARY }}
     steps:
       - name: Checkout source
-        uses: cloudbees-io/checkout@v1
+        uses: cloudbees-io/checkout@v2
 
       # ----------------------- GO -----------------------
       - name: Run Go tests
