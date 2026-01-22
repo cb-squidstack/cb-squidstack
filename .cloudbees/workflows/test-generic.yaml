@@ -76,7 +76,7 @@ jobs:
           # Create test session
           if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             echo "=== Creating Smart Tests session ==="
-            launchable record session --build "cb-squidstack-${APP_NAME}-${CLOUDBEES_BUILD_ID}" > /tmp/launchable-session.txt || {
+            launchable record session --build "cb-squidstack-${APP_NAME}-${CLOUDBEES_BUILD_ID}" --test-suite "${APP_NAME}-tests" > /tmp/launchable-session.txt || {
               echo "Warning: Session creation failed, running all tests"
               unset LAUNCHABLE_TOKEN
             }
@@ -149,7 +149,7 @@ jobs:
           # Record test results to Smart Tests
           if [ -n "${LAUNCHABLE_TOKEN:-}" ] && [ -f junit.xml ]; then
             echo "=== Recording test results to Smart Tests ==="
-            launchable record tests --session "$(cat /tmp/launchable-session.txt)" file junit.xml || {
+            launchable record tests --session "$(cat /tmp/launchable-session.txt)" --test-suite "${APP_NAME}-tests" file junit.xml || {
               echo "Warning: Test result recording failed"
             }
           fi
@@ -260,7 +260,7 @@ jobs:
           # Create test session
           if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             echo "=== Creating Smart Tests session ==="
-            launchable record session --build "cb-squidstack-${APP_NAME}-${CLOUDBEES_BUILD_ID}" > /tmp/launchable-session.txt || {
+            launchable record session --build "cb-squidstack-${APP_NAME}-${CLOUDBEES_BUILD_ID}" --test-suite "${APP_NAME}-tests" > /tmp/launchable-session.txt || {
               echo "Warning: Session creation failed, running all tests"
               unset LAUNCHABLE_TOKEN
             }
@@ -332,7 +332,7 @@ jobs:
           # Record test results to Smart Tests
           if [ -n "${LAUNCHABLE_TOKEN:-}" ] && [ -f junit.xml ]; then
             echo "=== Recording test results to Smart Tests ==="
-            launchable record tests --session "$(cat /tmp/launchable-session.txt)" file junit.xml || {
+            launchable record tests --session "$(cat /tmp/launchable-session.txt)" --test-suite "${APP_NAME}-tests" file junit.xml || {
               echo "Warning: Test result recording failed"
             }
           fi
