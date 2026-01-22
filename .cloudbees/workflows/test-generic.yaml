@@ -27,8 +27,28 @@ on:
       smart_tests_org:
         type: string
         required: false
-        default: "cloudbees-se-eval"
-        description: "CloudBees organization name for Smart Tests URLs (e.g., cloudbees-se-eval)"
+        default: "d9a801f1-331e-4e61-8100-435303707e42"
+        description: "Smart Tests organization ID for URLs"
+      smart_tests_workspace:
+        type: string
+        required: false
+        default: "d9a801f1-331e-4e61-8100-435303707e42"
+        description: "Smart Tests workspace ID for URLs"
+      smart_tests_target:
+        type: string
+        required: false
+        default: ""
+        description: "Smart Tests subset target (e.g., '80%', '10m', '5m'). Empty = use defaults"
+      smart_tests_confidence:
+        type: string
+        required: false
+        default: ""
+        description: "Smart Tests confidence level (0-100). Empty = use defaults"
+      smart_tests_observation:
+        type: string
+        required: false
+        default: ""
+        description: "Number of historical sessions to analyze. Empty = use defaults"
       fetch_depth:
         type: number
         required: false
@@ -85,10 +105,13 @@ jobs:
           # Record build to Smart Tests
           if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             echo "=== Recording build to Smart Tests ==="
-            launchable record build --name "cb-squidstack-${APP_NAME}-${CLOUDBEES_BUILD_ID}" || {
+            launchable record build --name "cb-squidstack-${APP_NAME}-${CLOUDBEES_BUILD_ID}" > /tmp/launchable-build.txt || {
               echo "Warning: Build recording failed, continuing without Smart Tests"
               unset LAUNCHABLE_TOKEN
             }
+            if [ -f /tmp/launchable-build.txt ]; then
+              cat /tmp/launchable-build.txt
+            fi
           fi
 
           # Create test session
@@ -103,9 +126,23 @@ jobs:
           # Get test subset
           if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             echo "=== Getting Smart Tests subset ==="
+            # Build subset command with optional parameters
+            SUBSET_ARGS="--session $(cat /tmp/launchable-session.txt)"
+            if [ -n "${{ inputs.smart_tests_target }}" ]; then
+              SUBSET_ARGS="$SUBSET_ARGS --target ${{ inputs.smart_tests_target }}"
+              echo "Using target: ${{ inputs.smart_tests_target }}"
+            fi
+            if [ -n "${{ inputs.smart_tests_confidence }}" ]; then
+              SUBSET_ARGS="$SUBSET_ARGS --confidence ${{ inputs.smart_tests_confidence }}"
+              echo "Using confidence: ${{ inputs.smart_tests_confidence }}"
+            fi
+            if [ -n "${{ inputs.smart_tests_observation }}" ]; then
+              SUBSET_ARGS="$SUBSET_ARGS --observation ${{ inputs.smart_tests_observation }}"
+              echo "Using observation: ${{ inputs.smart_tests_observation }}"
+            fi
             # Generate list of all Go test files and pipe to subset command
             find . -type f -name "*_test.go" | \
-              launchable subset --session "$(cat /tmp/launchable-session.txt)" file > /tmp/launchable-subset.txt || {
+              launchable subset $SUBSET_ARGS file > /tmp/launchable-subset.txt || {
               echo "Warning: Subset generation failed, running all tests"
               rm -f /tmp/launchable-subset.txt
             }
@@ -175,9 +212,29 @@ jobs:
           # Generate Smart Tests summary for evidence
           if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             BUILD_NAME="cb-squidstack-${APP_NAME}-${CLOUDBEES_BUILD_ID}"
-            SESSION_ID=$(cat /tmp/launchable-session.txt 2>/dev/null || echo "unknown")
-            BUILD_URL="https://cloudbees.io/${{ inputs.smart_tests_org }}/launchable/data/builds/${BUILD_NAME}"
-            SESSION_URL="https://cloudbees.io/${{ inputs.smart_tests_org }}/launchable/data/test-sessions/${SESSION_ID}"
+            SESSION_PATH=$(cat /tmp/launchable-session.txt 2>/dev/null || echo "unknown")
+            # Extract just the session number from the path (e.g., "builds/.../test_sessions/5561168" -> "5561168")
+            SESSION_ID=$(echo "$SESSION_PATH" | sed 's|.*/test_sessions/||')
+
+            # Extract build ID from build recording output (if available)
+            if [ -f /tmp/launchable-build.txt ]; then
+              BUILD_ID=$(grep -oE 'builds/[0-9]+' /tmp/launchable-build.txt | sed 's|builds/||' || echo "")
+            else
+              BUILD_ID=""
+            fi
+
+            # Construct URLs using cbp.launchableinc.com format
+            ORG_ID="${{ inputs.smart_tests_org }}"
+            WS_ID="${{ inputs.smart_tests_workspace }}"
+            BASE_URL="https://cbp.launchableinc.com/organizations/${ORG_ID}/workspaces/${WS_ID}/data"
+
+            if [ -n "$BUILD_ID" ]; then
+              BUILD_URL="${BASE_URL}/builds/${BUILD_ID}"
+              BUILD_LINK="[\`${BUILD_ID}\`](${BUILD_URL})"
+            else
+              BUILD_LINK="\`${BUILD_NAME}\`"
+            fi
+            SESSION_URL="${BASE_URL}/test-sessions/${SESSION_ID}"
 
             # Count subset statistics if subset was generated
             if [ -s /tmp/launchable-subset.txt ]; then
@@ -197,7 +254,7 @@ jobs:
                 echo ""
                 echo "**Test Suite:** \`${APP_NAME}-tests\`"
                 echo ""
-                echo "**Build:** [\`${BUILD_NAME}\`](${BUILD_URL})"
+                echo "**Build:** ${BUILD_LINK}"
                 echo ""
                 echo "**Session:** [${SESSION_ID}](${SESSION_URL})"
                 echo ""
@@ -213,7 +270,7 @@ jobs:
                 echo ""
                 echo "**Test Suite:** \`${APP_NAME}-tests\`"
                 echo ""
-                echo "**Build:** [\`${BUILD_NAME}\`](${BUILD_URL})"
+                echo "**Build:** ${BUILD_LINK}"
                 echo ""
                 echo "**Session:** [${SESSION_ID}](${SESSION_URL})"
               } > "$CLOUDBEES_OUTPUTS/SMART_TESTS_SUMMARY"
@@ -321,10 +378,13 @@ jobs:
           # Record build to Smart Tests
           if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             echo "=== Recording build to Smart Tests ==="
-            launchable record build --name "cb-squidstack-${APP_NAME}-${CLOUDBEES_BUILD_ID}" || {
+            launchable record build --name "cb-squidstack-${APP_NAME}-${CLOUDBEES_BUILD_ID}" > /tmp/launchable-build.txt || {
               echo "Warning: Build recording failed, continuing without Smart Tests"
               unset LAUNCHABLE_TOKEN
             }
+            if [ -f /tmp/launchable-build.txt ]; then
+              cat /tmp/launchable-build.txt
+            fi
           fi
 
           # Create test session
@@ -339,9 +399,23 @@ jobs:
           # Get test subset
           if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             echo "=== Getting Smart Tests subset ==="
+            # Build subset command with optional parameters
+            SUBSET_ARGS="--session $(cat /tmp/launchable-session.txt)"
+            if [ -n "${{ inputs.smart_tests_target }}" ]; then
+              SUBSET_ARGS="$SUBSET_ARGS --target ${{ inputs.smart_tests_target }}"
+              echo "Using target: ${{ inputs.smart_tests_target }}"
+            fi
+            if [ -n "${{ inputs.smart_tests_confidence }}" ]; then
+              SUBSET_ARGS="$SUBSET_ARGS --confidence ${{ inputs.smart_tests_confidence }}"
+              echo "Using confidence: ${{ inputs.smart_tests_confidence }}"
+            fi
+            if [ -n "${{ inputs.smart_tests_observation }}" ]; then
+              SUBSET_ARGS="$SUBSET_ARGS --observation ${{ inputs.smart_tests_observation }}"
+              echo "Using observation: ${{ inputs.smart_tests_observation }}"
+            fi
             # Generate list of all test files and pipe to subset command
             find src -type f \( -name "*.test.js" -o -name "*.test.jsx" -o -name "*.test.ts" -o -name "*.test.tsx" \) | \
-              launchable subset --session "$(cat /tmp/launchable-session.txt)" file > /tmp/launchable-subset.txt || {
+              launchable subset $SUBSET_ARGS file > /tmp/launchable-subset.txt || {
               echo "Warning: Subset generation failed, running all tests"
               rm -f /tmp/launchable-subset.txt
             }
@@ -410,9 +484,29 @@ jobs:
           # Generate Smart Tests summary for evidence
           if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             BUILD_NAME="cb-squidstack-${APP_NAME}-${CLOUDBEES_BUILD_ID}"
-            SESSION_ID=$(cat /tmp/launchable-session.txt 2>/dev/null || echo "unknown")
-            BUILD_URL="https://cloudbees.io/${{ inputs.smart_tests_org }}/launchable/data/builds/${BUILD_NAME}"
-            SESSION_URL="https://cloudbees.io/${{ inputs.smart_tests_org }}/launchable/data/test-sessions/${SESSION_ID}"
+            SESSION_PATH=$(cat /tmp/launchable-session.txt 2>/dev/null || echo "unknown")
+            # Extract just the session number from the path (e.g., "builds/.../test_sessions/5561168" -> "5561168")
+            SESSION_ID=$(echo "$SESSION_PATH" | sed 's|.*/test_sessions/||')
+
+            # Extract build ID from build recording output (if available)
+            if [ -f /tmp/launchable-build.txt ]; then
+              BUILD_ID=$(grep -oE 'builds/[0-9]+' /tmp/launchable-build.txt | sed 's|builds/||' || echo "")
+            else
+              BUILD_ID=""
+            fi
+
+            # Construct URLs using cbp.launchableinc.com format
+            ORG_ID="${{ inputs.smart_tests_org }}"
+            WS_ID="${{ inputs.smart_tests_workspace }}"
+            BASE_URL="https://cbp.launchableinc.com/organizations/${ORG_ID}/workspaces/${WS_ID}/data"
+
+            if [ -n "$BUILD_ID" ]; then
+              BUILD_URL="${BASE_URL}/builds/${BUILD_ID}"
+              BUILD_LINK="[\`${BUILD_ID}\`](${BUILD_URL})"
+            else
+              BUILD_LINK="\`${BUILD_NAME}\`"
+            fi
+            SESSION_URL="${BASE_URL}/test-sessions/${SESSION_ID}"
 
             # Count subset statistics if subset was generated
             if [ -s /tmp/launchable-subset.txt ]; then
@@ -432,7 +526,7 @@ jobs:
                 echo ""
                 echo "**Test Suite:** \`${APP_NAME}-tests\`"
                 echo ""
-                echo "**Build:** [\`${BUILD_NAME}\`](${BUILD_URL})"
+                echo "**Build:** ${BUILD_LINK}"
                 echo ""
                 echo "**Session:** [${SESSION_ID}](${SESSION_URL})"
                 echo ""
@@ -448,7 +542,7 @@ jobs:
                 echo ""
                 echo "**Test Suite:** \`${APP_NAME}-tests\`"
                 echo ""
-                echo "**Build:** [\`${BUILD_NAME}\`](${BUILD_URL})"
+                echo "**Build:** ${BUILD_LINK}"
                 echo ""
                 echo "**Session:** [${SESSION_ID}](${SESSION_URL})"
               } > "$CLOUDBEES_OUTPUTS/SMART_TESTS_SUMMARY"
