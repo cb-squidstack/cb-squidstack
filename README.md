@@ -529,6 +529,93 @@ jobs:
 
 ---
 
+## 🧪 CloudBees Smart Tests Integration
+
+SquidStack uses **CloudBees Smart Tests** (formerly Launchable) to optimize test execution across all services.
+
+### How Smart Tests Works
+
+Smart Tests uses machine learning to predict which tests are most likely to find defects based on:
+- Code changes in the current commit
+- Historical test results and timing data
+- Test failure patterns
+
+Instead of running all tests on every commit, Smart Tests runs a subset of tests most likely to catch issues, significantly reducing CI time while maintaining confidence.
+
+### Integration Details
+
+All services use the shared `test-generic.yaml` workflow which includes:
+- **Build recording**: Every build and commit is recorded to Smart Tests
+- **Test suite separation**: Each component reports tests separately (e.g., `squid-ui-tests`, `kraken-auth-tests`)
+- **Subset generation**: Smart Tests selects which tests to run based on code changes
+- **Result recording**: Test results are sent back to Smart Tests to improve future predictions
+- **Graceful fallback**: If Smart Tests is unavailable, all tests run automatically
+
+### Configuration
+
+**Organization Secret:**
+- `LAUNCHABLE_TOKEN`: API token for Smart Tests workspace (set at org level, inherited by all workflows)
+
+**Workflow Parameters:**
+```yaml
+test:
+  uses: github.com/cb-squidstack/cb-squidstack/.cloudbees/workflows/test-generic.yaml@main
+  with:
+    app_name: squid-ui
+    language: node
+    coverage_root: src
+    debug: "true"
+    enable_smart_tests: "true"  # Enable Smart Tests (default: "false")
+    fetch_depth: 0              # Optional: defaults to 0 (full history)
+  secrets: inherit
+```
+
+**Key Parameters:**
+- `enable_smart_tests`: Enable/disable Smart Tests integration (default: `"false"`, opt-in)
+  - Set to `"true"` to enable Smart Tests for the component
+  - Requires `LAUNCHABLE_TOKEN` secret to be set
+- `fetch_depth`: Number of commits to fetch (default: `0` for full history)
+  - Smart Tests analyzes commit history to make predictions
+  - Set to `0` (full clone) for best results
+  - Can override to `1` (shallow) or `50` (partial) if needed for performance
+  - Full history eliminates "shallow clone" warnings
+
+### Test Suite Names
+
+Each component's tests are identified with unique test suite names:
+- `squid-ui-tests` (Node.js/React)
+- `kraken-auth-tests` (Go)
+- `clam-catalog-tests` (Go)
+- `octopus-payments-tests` (Go)
+- etc.
+
+This separation allows Smart Tests to:
+- Track test performance per component
+- Provide component-specific subset recommendations
+- Identify flaky tests per service
+- Generate focused reports
+
+### Benefits
+
+- **Faster CI times**: Run only tests likely to catch issues (typically 20-80% subset after baseline)
+- **Maintained confidence**: ML predictions ensure critical tests still run
+- **Better insights**: Track test timing, flakiness, and failure patterns
+- **No manual maintenance**: Subset selection is automatic based on code changes
+
+### Implementation
+
+Smart Tests is integrated into both Node.js and Go test sections of `test-generic.yaml`:
+1. Install Launchable CLI (Python package)
+2. Record build with commit information
+3. Create test session with test suite name
+4. Get optimized test subset
+5. Run subset tests (or all tests if subset unavailable)
+6. Record test results for learning
+
+For full implementation details, see `.cloudbees/workflows/test-generic.yaml`.
+
+---
+
 ## 📎 Related Docs
 
 Each service has its own README:

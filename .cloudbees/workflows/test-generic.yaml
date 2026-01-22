@@ -19,6 +19,16 @@ on:
         type: string
         required: false
         default: "false"
+      enable_smart_tests:
+        type: string
+        required: false
+        default: "false"
+        description: "Enable CloudBees Smart Tests integration (requires LAUNCHABLE_TOKEN secret)"
+      fetch_depth:
+        type: number
+        required: false
+        default: 0
+        description: "Number of commits to fetch (0 = all history). Full history recommended for Smart Tests to analyze commits and provide accurate test predictions."
 
 jobs:
   test:
@@ -29,6 +39,8 @@ jobs:
     steps:
       - name: Checkout source
         uses: cloudbees-io/checkout@v2
+        with:
+          fetch-depth: ${{ inputs.fetch_depth }}
 
       # ----------------------- GO -----------------------
       - name: Run Go tests
@@ -49,8 +61,8 @@ jobs:
           go install github.com/jstemmer/go-junit-report/v2@latest
 
           # ========== CloudBees Smart Tests Integration START ==========
-          # Install Launchable CLI (optional, only if token provided)
-          if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
+          # Install Launchable CLI (optional, only if enabled and token provided)
+          if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             echo "=== Installing CloudBees Smart Tests CLI ==="
             apk add --no-cache python3 py3-pip openjdk17-jre-headless || {
               echo "Warning: Dependencies installation failed, continuing without Smart Tests"
@@ -65,7 +77,7 @@ jobs:
           fi
 
           # Record build to Smart Tests
-          if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
+          if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             echo "=== Recording build to Smart Tests ==="
             launchable record build --name "cb-squidstack-${APP_NAME}-${CLOUDBEES_BUILD_ID}" || {
               echo "Warning: Build recording failed, continuing without Smart Tests"
@@ -74,7 +86,7 @@ jobs:
           fi
 
           # Create test session
-          if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
+          if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             echo "=== Creating Smart Tests session ==="
             launchable record session --build "cb-squidstack-${APP_NAME}-${CLOUDBEES_BUILD_ID}" --test-suite "${APP_NAME}-tests" > /tmp/launchable-session.txt || {
               echo "Warning: Session creation failed, running all tests"
@@ -83,7 +95,7 @@ jobs:
           fi
 
           # Get test subset
-          if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
+          if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             echo "=== Getting Smart Tests subset ==="
             # Generate list of all Go test files and pipe to subset command
             find . -type f -name "*_test.go" | \
@@ -103,7 +115,7 @@ jobs:
           set -o pipefail
 
           # Run tests (subset or all)
-          if [ -n "${LAUNCHABLE_TOKEN:-}" ] && [ -s /tmp/launchable-subset.txt ]; then
+          if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ] && [ -s /tmp/launchable-subset.txt ]; then
             echo "=== Running Smart Tests subset ==="
             # Convert file list to Go package paths for testing
             # For each test file, get its directory and prefix with ./ (but handle root . specially)
@@ -128,7 +140,7 @@ jobs:
           "$(go env GOPATH)"/bin/go-junit-report -set-exit-code < test_stdout.txt > junit.xml || true
 
           # Add file attributes to JUnit XML for Smart Tests file profile (using awk instead of Python)
-          if [ -n "${LAUNCHABLE_TOKEN:-}" ] && [ -f junit.xml ] && [ -s /tmp/launchable-subset.txt ]; then
+          if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ] && [ -f junit.xml ] && [ -s /tmp/launchable-subset.txt ]; then
             echo "=== Adding file attributes to JUnit XML ==="
             # Build package->file mapping
             while read test_file; do
@@ -147,7 +159,7 @@ jobs:
           fi
 
           # Record test results to Smart Tests
-          if [ -n "${LAUNCHABLE_TOKEN:-}" ] && [ -f junit.xml ]; then
+          if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ] && [ -f junit.xml ]; then
             echo "=== Recording test results to Smart Tests ==="
             launchable record tests --session "$(cat /tmp/launchable-session.txt)" --test-suite "${APP_NAME}-tests" file junit.xml || {
               echo "Warning: Test result recording failed"
@@ -233,8 +245,8 @@ jobs:
           npm i -D jest-junit
 
           # ========== CloudBees Smart Tests Integration START ==========
-          # Install Launchable CLI (optional, only if token provided)
-          if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
+          # Install Launchable CLI (optional, only if enabled and token provided)
+          if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             echo "=== Installing CloudBees Smart Tests CLI ==="
             apk add --no-cache python3 py3-pip openjdk17-jre-headless || {
               echo "Warning: Dependencies installation failed, continuing without Smart Tests"
@@ -249,7 +261,7 @@ jobs:
           fi
 
           # Record build to Smart Tests
-          if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
+          if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             echo "=== Recording build to Smart Tests ==="
             launchable record build --name "cb-squidstack-${APP_NAME}-${CLOUDBEES_BUILD_ID}" || {
               echo "Warning: Build recording failed, continuing without Smart Tests"
@@ -258,7 +270,7 @@ jobs:
           fi
 
           # Create test session
-          if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
+          if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             echo "=== Creating Smart Tests session ==="
             launchable record session --build "cb-squidstack-${APP_NAME}-${CLOUDBEES_BUILD_ID}" --test-suite "${APP_NAME}-tests" > /tmp/launchable-session.txt || {
               echo "Warning: Session creation failed, running all tests"
@@ -267,7 +279,7 @@ jobs:
           fi
 
           # Get test subset
-          if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
+          if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             echo "=== Getting Smart Tests subset ==="
             # Generate list of all test files and pipe to subset command
             find src -type f \( -name "*.test.js" -o -name "*.test.jsx" -o -name "*.test.ts" -o -name "*.test.tsx" \) | \
@@ -287,7 +299,7 @@ jobs:
           set -o pipefail
 
           # Run tests (subset or all)
-          if [ -n "${LAUNCHABLE_TOKEN:-}" ] && [ -s /tmp/launchable-subset.txt ]; then
+          if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ] && [ -s /tmp/launchable-subset.txt ]; then
             echo "=== Running Smart Tests subset ==="
             # Convert subset file to Jest testPathPattern
             SUBSET_PATTERN=$(cat /tmp/launchable-subset.txt | sed 's|^./||' | paste -sd '|' -)
@@ -330,7 +342,7 @@ jobs:
           set -e
 
           # Record test results to Smart Tests
-          if [ -n "${LAUNCHABLE_TOKEN:-}" ] && [ -f junit.xml ]; then
+          if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ] && [ -f junit.xml ]; then
             echo "=== Recording test results to Smart Tests ==="
             launchable record tests --session "$(cat /tmp/launchable-session.txt)" --test-suite "${APP_NAME}-tests" file junit.xml || {
               echo "Warning: Test result recording failed"
