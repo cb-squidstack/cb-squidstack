@@ -29,6 +29,11 @@ on:
         required: false
         default: 0
         description: "Number of commits to fetch (0 = all history). Full history recommended for Smart Tests to analyze commits and provide accurate test predictions."
+    outputs:
+      CODE_COVERAGE:
+        value: ${{ jobs.test.outputs.CODE_COVERAGE }}
+      TEST_SUMMARY:
+        value: ${{ jobs.test.outputs.TEST_SUMMARY }}
 
 jobs:
   test:
