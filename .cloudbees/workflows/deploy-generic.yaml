@@ -109,13 +109,7 @@ jobs:
         uses: guru-actions/kubeconfig@1.16
         with:
           secname: ${{ secrets.KUBECONFIG }}
-
-      - name: Login to Docker Hub for Helm OCI
-        uses: docker://alpine/helm:3.14.0
-        shell: sh
-        run: |
-          echo "${{ secrets.DOCKER_TOKEN }}" | helm registry login registry-1.docker.io -u "${{ secrets.DOCKER_USER }}" --password-stdin
-
+      
       - name: Fetch Helm dependencies
         uses: docker://alpine/helm:3.14.0
         shell: sh
