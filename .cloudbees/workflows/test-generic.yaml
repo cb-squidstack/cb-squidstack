@@ -27,8 +27,13 @@ on:
       smart_tests_org:
         type: string
         required: false
-        default: "cloudbees-se-eval"
-        description: "Smart Tests organization name for CloudBees.io URLs"
+        default: "d9a801f1-331e-4e61-8100-435303707e42"
+        description: "Smart Tests organization ID for URLs"
+      smart_tests_workspace:
+        type: string
+        required: false
+        default: "d9a801f1-331e-4e61-8100-435303707e42"
+        description: "Smart Tests workspace ID for URLs"
       smart_tests_target:
         type: string
         required: false
@@ -218,9 +223,10 @@ jobs:
               BUILD_ID=""
             fi
 
-            # Construct URLs using cloudbees.io format
-            ORG_NAME="${{ inputs.smart_tests_org }}"
-            BASE_URL="https://cloudbees.io/${ORG_NAME}/launchable/data"
+            # Construct URLs using cbp.launchableinc.com format
+            ORG_ID="${{ inputs.smart_tests_org }}"
+            WS_ID="${{ inputs.smart_tests_workspace }}"
+            BASE_URL="https://cbp.launchableinc.com/organizations/${ORG_ID}/workspaces/${WS_ID}/data"
 
             if [ -n "$BUILD_ID" ]; then
               BUILD_URL="${BASE_URL}/builds/${BUILD_ID}"
@@ -489,9 +495,10 @@ jobs:
               BUILD_ID=""
             fi
 
-            # Construct URLs using cloudbees.io format
-            ORG_NAME="${{ inputs.smart_tests_org }}"
-            BASE_URL="https://cloudbees.io/${ORG_NAME}/launchable/data"
+            # Construct URLs using cbp.launchableinc.com format
+            ORG_ID="${{ inputs.smart_tests_org }}"
+            WS_ID="${{ inputs.smart_tests_workspace }}"
+            BASE_URL="https://cbp.launchableinc.com/organizations/${ORG_ID}/workspaces/${WS_ID}/data"
 
             if [ -n "$BUILD_ID" ]; then
               BUILD_URL="${BASE_URL}/builds/${BUILD_ID}"
