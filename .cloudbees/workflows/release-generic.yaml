@@ -42,7 +42,7 @@ jobs:
           cb_api_token: ${{ secrets.sb_internal_api }}
           cb_org_id: "8d16bd77-d506-45e6-a0f4-8884ce16d301"
           cb_application_id: "e3925a1f-9165-4767-9d6e-a96bb4edc80a"
-          cb_workflow_id: "5a6ea7f6-042c-4724-b58c-0744982966b4"
+          cb_workflow_id: "95577bc1-5682-46d8-9246-0b13009e2b6e"
           cb_environment: ${{ inputs.environment }}
           release_name_prefix: ${{ inputs.release_name_prefix != '' && inputs.release_name_prefix || format('{0}-', inputs.component_name) }}
           component_overrides: "${{ inputs.component_id }}=${{ inputs.version }}"
