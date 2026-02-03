@@ -88,7 +88,7 @@ jobs:
           if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             echo "=== Recording build to Smart Tests ==="
             SMART_TESTS_BUILD_NAME="cb-squidstack-${APP_NAME}-${CLOUDBEES_BUILD_ID}"
-            echo "$SMART_TESTS_BUILD_NAME" > /tmp/smart_tests_build_name.txt
+            printf '%s' "$SMART_TESTS_BUILD_NAME" > /tmp/smart_tests_build_name.txt
             launchable record build --name "$SMART_TESTS_BUILD_NAME" || {
               echo "Warning: Build recording failed, continuing without Smart Tests"
               unset LAUNCHABLE_TOKEN
@@ -204,9 +204,9 @@ jobs:
 
           # Output Smart Tests build name if it was set
           if [ -f /tmp/smart_tests_build_name.txt ]; then
-            cat /tmp/smart_tests_build_name.txt > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
+            printf '%s' "$(cat /tmp/smart_tests_build_name.txt)" > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
           else
-            echo "" > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
+            printf '%s' "" > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
           fi
 
           exit $STATUS
@@ -281,7 +281,7 @@ jobs:
           if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             echo "=== Recording build to Smart Tests ==="
             SMART_TESTS_BUILD_NAME="cb-squidstack-${APP_NAME}-${CLOUDBEES_BUILD_ID}"
-            echo "$SMART_TESTS_BUILD_NAME" > /tmp/smart_tests_build_name.txt
+            printf '%s' "$SMART_TESTS_BUILD_NAME" > /tmp/smart_tests_build_name.txt
             launchable record build --name "$SMART_TESTS_BUILD_NAME" || {
               echo "Warning: Build recording failed, continuing without Smart Tests"
               unset LAUNCHABLE_TOKEN
@@ -395,9 +395,9 @@ jobs:
 
           # Output Smart Tests build name if it was set
           if [ -f /tmp/smart_tests_build_name.txt ]; then
-            cat /tmp/smart_tests_build_name.txt > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
+            printf '%s' "$(cat /tmp/smart_tests_build_name.txt)" > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
           else
-            echo "" > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
+            printf '%s' "" > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
           fi
 
           exit $STATUS
@@ -509,9 +509,9 @@ jobs:
           fi
 
           if [ -n "${GO_SMART_TESTS:-}" ]; then
-            printf '%s\n' "$GO_SMART_TESTS" > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
+            printf '%s' "$GO_SMART_TESTS" > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
           elif [ -n "${NODE_SMART_TESTS:-}" ]; then
-            printf '%s\n' "$NODE_SMART_TESTS" > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
+            printf '%s' "$NODE_SMART_TESTS" > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
           else
-            echo "" > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
+            printf '%s' "" > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
           fi
