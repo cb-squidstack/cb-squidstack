@@ -34,6 +34,8 @@ on:
         value: ${{ jobs.test.outputs.CODE_COVERAGE }}
       TEST_SUMMARY:
         value: ${{ jobs.test.outputs.TEST_SUMMARY }}
+      SMART_TESTS_BUILD_NAME:
+        value: ${{ jobs.test.outputs.SMART_TESTS_BUILD_NAME }}
 
 jobs:
   test:
@@ -41,6 +43,7 @@ jobs:
     outputs:
       CODE_COVERAGE: ${{ steps.ChooseCoverage.outputs.CODE_COVERAGE }}
       TEST_SUMMARY: ${{ steps.ChooseCoverage.outputs.TEST_SUMMARY }}
+      SMART_TESTS_BUILD_NAME: ${{ steps.ChooseCoverage.outputs.SMART_TESTS_BUILD_NAME }}
     steps:
       - name: Checkout source
         uses: cloudbees-io/checkout@v2
@@ -84,7 +87,9 @@ jobs:
           # Record build to Smart Tests
           if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             echo "=== Recording build to Smart Tests ==="
-            launchable record build --name "cb-squidstack-${APP_NAME}-${CLOUDBEES_BUILD_ID}" || {
+            SMART_TESTS_BUILD_NAME="cb-squidstack-${APP_NAME}-${CLOUDBEES_BUILD_ID}"
+            printf '%s' "$SMART_TESTS_BUILD_NAME" > /tmp/smart_tests_build_name.txt
+            launchable record build --name "$SMART_TESTS_BUILD_NAME" || {
               echo "Warning: Build recording failed, continuing without Smart Tests"
               unset LAUNCHABLE_TOKEN
             }
@@ -197,6 +202,13 @@ jobs:
             { echo '```'; echo '(no coverage output captured)'; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
           fi
 
+          # Output Smart Tests build name if it was set
+          if [ -f /tmp/smart_tests_build_name.txt ]; then
+            printf '%s' "$(cat /tmp/smart_tests_build_name.txt)" > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
+          else
+            printf '%s' "" > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
+          fi
+
           exit $STATUS
 
       - name: Publish Go test results
@@ -268,7 +280,9 @@ jobs:
           # Record build to Smart Tests
           if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             echo "=== Recording build to Smart Tests ==="
-            launchable record build --name "cb-squidstack-${APP_NAME}-${CLOUDBEES_BUILD_ID}" || {
+            SMART_TESTS_BUILD_NAME="cb-squidstack-${APP_NAME}-${CLOUDBEES_BUILD_ID}"
+            printf '%s' "$SMART_TESTS_BUILD_NAME" > /tmp/smart_tests_build_name.txt
+            launchable record build --name "$SMART_TESTS_BUILD_NAME" || {
               echo "Warning: Build recording failed, continuing without Smart Tests"
               unset LAUNCHABLE_TOKEN
             }
@@ -379,6 +393,13 @@ jobs:
             { echo '```'; echo '(no coverage output captured)'; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
           fi
 
+          # Output Smart Tests build name if it was set
+          if [ -f /tmp/smart_tests_build_name.txt ]; then
+            printf '%s' "$(cat /tmp/smart_tests_build_name.txt)" > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
+          else
+            printf '%s' "" > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
+          fi
+
           exit $STATUS
 
       - name: Publish Node test results
@@ -462,8 +483,10 @@ jobs:
         env:
           GO_COV: ${{ steps.GoTests.outputs.CODE_COVERAGE }}
           GO_TEST: ${{ steps.GoTests.outputs.TEST_SUMMARY }}
+          GO_SMART_TESTS: ${{ steps.GoTests.outputs.SMART_TESTS_BUILD_NAME }}
           NODE_COV: ${{ steps.NodeTests.outputs.CODE_COVERAGE }}
           NODE_TEST: ${{ steps.NodeTests.outputs.TEST_SUMMARY }}
+          NODE_SMART_TESTS: ${{ steps.NodeTests.outputs.SMART_TESTS_BUILD_NAME }}
           PY_COV: ${{ steps.PyTests.outputs.CODE_COVERAGE }}
         run: |
           set -eu
@@ -483,4 +506,12 @@ jobs:
             printf '%s\n' "$NODE_TEST" > "$CLOUDBEES_OUTPUTS/TEST_SUMMARY"
           else
             echo "No test summary available" > "$CLOUDBEES_OUTPUTS/TEST_SUMMARY"
+          fi
+
+          if [ -n "${GO_SMART_TESTS:-}" ]; then
+            printf '%s' "$GO_SMART_TESTS" > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
+          elif [ -n "${NODE_SMART_TESTS:-}" ]; then
+            printf '%s' "$NODE_SMART_TESTS" > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
+          else
+            printf '%s' "" > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
           fi
