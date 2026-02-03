@@ -43,7 +43,7 @@ jobs:
     outputs:
       CODE_COVERAGE: ${{ steps.ChooseCoverage.outputs.CODE_COVERAGE }}
       TEST_SUMMARY: ${{ steps.ChooseCoverage.outputs.TEST_SUMMARY }}
-      SMART_TESTS_BUILD_NAME: ${{ steps.SmartTestsBuildName.outputs.BUILD_NAME }}
+      SMART_TESTS_BUILD_NAME: ${{ steps.ChooseCoverage.outputs.SMART_TESTS_BUILD_NAME }}
     steps:
       - name: Checkout source
         uses: cloudbees-io/checkout@v2
@@ -200,6 +200,13 @@ jobs:
             { echo '```'; cat coverage_summary.txt; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
           else
             { echo '```'; echo '(no coverage output captured)'; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
+          fi
+
+          # Output Smart Tests build name if it was set
+          if [ -f /tmp/smart_tests_build_name.txt ]; then
+            cat /tmp/smart_tests_build_name.txt > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
+          else
+            echo "" > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
           fi
 
           exit $STATUS
@@ -386,6 +393,13 @@ jobs:
             { echo '```'; echo '(no coverage output captured)'; echo '```'; } > "$CLOUDBEES_OUTPUTS/CODE_COVERAGE"
           fi
 
+          # Output Smart Tests build name if it was set
+          if [ -f /tmp/smart_tests_build_name.txt ]; then
+            cat /tmp/smart_tests_build_name.txt > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
+          else
+            echo "" > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
+          fi
+
           exit $STATUS
 
       - name: Publish Node test results
@@ -469,8 +483,10 @@ jobs:
         env:
           GO_COV: ${{ steps.GoTests.outputs.CODE_COVERAGE }}
           GO_TEST: ${{ steps.GoTests.outputs.TEST_SUMMARY }}
+          GO_SMART_TESTS: ${{ steps.GoTests.outputs.SMART_TESTS_BUILD_NAME }}
           NODE_COV: ${{ steps.NodeTests.outputs.CODE_COVERAGE }}
           NODE_TEST: ${{ steps.NodeTests.outputs.TEST_SUMMARY }}
+          NODE_SMART_TESTS: ${{ steps.NodeTests.outputs.SMART_TESTS_BUILD_NAME }}
           PY_COV: ${{ steps.PyTests.outputs.CODE_COVERAGE }}
         run: |
           set -eu
@@ -492,13 +508,10 @@ jobs:
             echo "No test summary available" > "$CLOUDBEES_OUTPUTS/TEST_SUMMARY"
           fi
 
-      - name: Capture Smart Tests build name
-        id: SmartTestsBuildName
-        uses: docker://alpine:3.20
-        run: |
-          set -eu
-          if [ -f /tmp/smart_tests_build_name.txt ]; then
-            cat /tmp/smart_tests_build_name.txt > "$CLOUDBEES_OUTPUTS/BUILD_NAME"
+          if [ -n "${GO_SMART_TESTS:-}" ]; then
+            printf '%s\n' "$GO_SMART_TESTS" > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
+          elif [ -n "${NODE_SMART_TESTS:-}" ]; then
+            printf '%s\n' "$NODE_SMART_TESTS" > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
           else
-            echo "" > "$CLOUDBEES_OUTPUTS/BUILD_NAME"
+            echo "" > "$CLOUDBEES_OUTPUTS/SMART_TESTS_BUILD_NAME"
           fi
