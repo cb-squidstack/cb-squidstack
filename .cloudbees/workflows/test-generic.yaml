@@ -34,6 +34,8 @@ on:
         value: ${{ jobs.test.outputs.CODE_COVERAGE }}
       TEST_SUMMARY:
         value: ${{ jobs.test.outputs.TEST_SUMMARY }}
+      SMART_TESTS_BUILD_NAME:
+        value: ${{ jobs.test.outputs.SMART_TESTS_BUILD_NAME }}
 
 jobs:
   test:
@@ -41,6 +43,7 @@ jobs:
     outputs:
       CODE_COVERAGE: ${{ steps.ChooseCoverage.outputs.CODE_COVERAGE }}
       TEST_SUMMARY: ${{ steps.ChooseCoverage.outputs.TEST_SUMMARY }}
+      SMART_TESTS_BUILD_NAME: ${{ steps.SmartTestsBuildName.outputs.BUILD_NAME }}
     steps:
       - name: Checkout source
         uses: cloudbees-io/checkout@v2
@@ -84,7 +87,9 @@ jobs:
           # Record build to Smart Tests
           if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             echo "=== Recording build to Smart Tests ==="
-            launchable record build --name "cb-squidstack-${APP_NAME}-${CLOUDBEES_BUILD_ID}" || {
+            SMART_TESTS_BUILD_NAME="cb-squidstack-${APP_NAME}-${CLOUDBEES_BUILD_ID}"
+            echo "$SMART_TESTS_BUILD_NAME" > /tmp/smart_tests_build_name.txt
+            launchable record build --name "$SMART_TESTS_BUILD_NAME" || {
               echo "Warning: Build recording failed, continuing without Smart Tests"
               unset LAUNCHABLE_TOKEN
             }
@@ -268,7 +273,9 @@ jobs:
           # Record build to Smart Tests
           if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
             echo "=== Recording build to Smart Tests ==="
-            launchable record build --name "cb-squidstack-${APP_NAME}-${CLOUDBEES_BUILD_ID}" || {
+            SMART_TESTS_BUILD_NAME="cb-squidstack-${APP_NAME}-${CLOUDBEES_BUILD_ID}"
+            echo "$SMART_TESTS_BUILD_NAME" > /tmp/smart_tests_build_name.txt
+            launchable record build --name "$SMART_TESTS_BUILD_NAME" || {
               echo "Warning: Build recording failed, continuing without Smart Tests"
               unset LAUNCHABLE_TOKEN
             }
@@ -483,4 +490,15 @@ jobs:
             printf '%s\n' "$NODE_TEST" > "$CLOUDBEES_OUTPUTS/TEST_SUMMARY"
           else
             echo "No test summary available" > "$CLOUDBEES_OUTPUTS/TEST_SUMMARY"
+          fi
+
+      - name: Capture Smart Tests build name
+        id: SmartTestsBuildName
+        uses: docker://alpine:3.20
+        run: |
+          set -eu
+          if [ -f /tmp/smart_tests_build_name.txt ]; then
+            cat /tmp/smart_tests_build_name.txt > "$CLOUDBEES_OUTPUTS/BUILD_NAME"
+          else
+            echo "" > "$CLOUDBEES_OUTPUTS/BUILD_NAME"
           fi
