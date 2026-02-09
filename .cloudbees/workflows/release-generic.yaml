@@ -58,7 +58,7 @@ jobs:
           queue_check_sleep_seconds: "45"
           wait_sleep_seconds: "45"
           max_wait_attempts: "90"
-          enable_api_diagnostics: "true"
+          enable_api_diagnostics: "false"
           smart_tests_component: ${{ inputs.component_name }}
           smart_tests_build_name: ${{ inputs.smart_tests_build_name }}
           ignore_releases: ${{ inputs.ignore_releases }}
