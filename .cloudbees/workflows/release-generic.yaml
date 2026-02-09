@@ -34,7 +34,7 @@ on:
       ignore_releases:
         type: string
         required: false
-        default: ""
+        default: "rel-test-sb--squid-demo-3-20260202-114850-23326"
         description: "Comma-delimited list of release names to ignore when checking for concurrent releases (useful for stuck releases)"
 
 jobs:
