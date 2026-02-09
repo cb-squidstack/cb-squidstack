@@ -76,8 +76,27 @@ jobs:
           echo "Run ID: ${{ steps.release.outputs.run_id }}"
           echo "========================================================"
 
-      - name: Publish release evidence
+      - name: Publish release link evidence
         kind: deploy
+        uses: cloudbees-io/publish-evidence-item@v1
+        with:
+          format: MARKDOWN
+          content: |
+            ## CloudBees Unify Release
+
+            **Component:** ${{ inputs.component_name }}
+            **Version:** ${{ inputs.version }}
+            **Environment:** ${{ inputs.environment }}
+            **Status:** ${{ steps.release.outputs.status }}
+
+            **Release Name:** `${{ steps.release.outputs.release_name }}`
+            **Release ID:** `${{ steps.release.outputs.release_id }}`
+            **Run ID:** `${{ steps.release.outputs.run_id }}`
+
+            ### 🔗 Release Link
+            [View Release in CloudBees Unify](https://cloudbees.io/orgs/8d16bd77-d506-45e6-a0f4-8884ce16d301/applications/e3925a1f-9165-4767-9d6e-a96bb4edc80a/releases/${{ steps.release.outputs.release_id }})
+
+      - name: Publish component selection evidence
         uses: cloudbees-io/publish-evidence-item@v1
         with:
           format: MARKDOWN
