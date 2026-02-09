@@ -42,7 +42,7 @@ jobs:
     steps:
       - name: Create and run CloudBees Unify release
         id: release
-        uses: guru-actions/create_release@v0.23
+        uses: guru-actions/create_release@main
         with:
           cb_api_token: ${{ secrets.sb_internal_api }}
           cb_org_id: "8d16bd77-d506-45e6-a0f4-8884ce16d301"
