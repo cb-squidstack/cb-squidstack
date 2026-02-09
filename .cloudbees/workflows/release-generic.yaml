@@ -31,6 +31,11 @@ on:
         required: false
         default: ""
         description: "Release name prefix (defaults to shortened component name)"
+      ignore_releases:
+        type: string
+        required: false
+        default: ""
+        description: "Comma-delimited list of release names to ignore when checking for concurrent releases (useful for stuck releases)"
 
 jobs:
   trigger-release:
@@ -56,6 +61,7 @@ jobs:
           enable_api_diagnostics: "true"
           smart_tests_component: ${{ inputs.component_name }}
           smart_tests_build_name: ${{ inputs.smart_tests_build_name }}
+          ignore_releases: ${{ inputs.ignore_releases }}
 
       - name: Show release status
         uses: docker://alpine:3.18
