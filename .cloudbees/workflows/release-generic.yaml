@@ -55,8 +55,8 @@ jobs:
           skip_release_on_missing_artifacts: "false"
           selection_report_format: "markdown"
           prevent_concurrent_releases: "wait"
-          queue_check_sleep_seconds: "20"
-          wait_sleep_seconds: "20"
+          queue_check_sleep_seconds: "45"
+          wait_sleep_seconds: "45"
           max_wait_attempts: "90"
           enable_api_diagnostics: "true"
           smart_tests_component: ${{ inputs.component_name }}
