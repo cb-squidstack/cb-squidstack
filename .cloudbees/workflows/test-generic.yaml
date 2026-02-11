@@ -171,7 +171,7 @@ jobs:
           # Record test results to Smart Tests
           if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ] && [ -f junit.xml ]; then
             echo "=== Recording test results to Smart Tests ==="
-            launchable record tests --session "$(cat /tmp/launchable-session.txt)" --test-suite "${APP_NAME}-tests" file junit.xml || {
+            launchable record tests --session "$(cat /tmp/launchable-session.txt)" file junit.xml || {
               echo "Warning: Test result recording failed"
             }
           fi
@@ -363,7 +363,7 @@ jobs:
           # Record test results to Smart Tests
           if [ "${{ inputs.enable_smart_tests }}" = "true" ] && [ -n "${LAUNCHABLE_TOKEN:-}" ] && [ -f junit.xml ]; then
             echo "=== Recording test results to Smart Tests ==="
-            launchable record tests --session "$(cat /tmp/launchable-session.txt)" --test-suite "${APP_NAME}-tests" file junit.xml || {
+            launchable record tests --session "$(cat /tmp/launchable-session.txt)" file junit.xml || {
               echo "Warning: Test result recording failed"
             }
           fi
