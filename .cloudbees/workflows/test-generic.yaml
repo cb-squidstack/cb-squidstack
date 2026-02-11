@@ -77,7 +77,7 @@ jobs:
               unset LAUNCHABLE_TOKEN
             }
             if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
-              pip3 install launchable --break-system-packages || {
+              pip3 install launchable==1.118.0 --break-system-packages || {
                 echo "Warning: Launchable CLI install failed, continuing without Smart Tests"
                 unset LAUNCHABLE_TOKEN
               }
@@ -270,7 +270,7 @@ jobs:
               unset LAUNCHABLE_TOKEN
             }
             if [ -n "${LAUNCHABLE_TOKEN:-}" ]; then
-              pip3 install launchable --break-system-packages || {
+              pip3 install launchable==1.118.0 --break-system-packages || {
                 echo "Warning: Launchable CLI install failed, continuing without Smart Tests"
                 unset LAUNCHABLE_TOKEN
               }
