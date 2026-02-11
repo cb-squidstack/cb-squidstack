@@ -616,6 +616,113 @@ For full implementation details, see `.cloudbees/workflows/test-generic.yaml`.
 
 ---
 
+## 🚀 CloudBees Unify Release Management
+
+SquidStack uses **CloudBees Unify Release Management** to orchestrate multi-component releases to shared environments with Smart Tests integration.
+
+### Release Workflow Pattern
+
+All components use the `release-generic.yaml` reusable workflow to create CloudBees Unify releases:
+
+```yaml
+triggerRelease:
+  if: ${{ cloudbees.scm.branch == 'main' }}  # Trigger on main branch
+  needs: [test, build, deployPreProd]
+  uses: github.com/cb-squidstack/cb-squidstack/.cloudbees/workflows/release-generic.yaml@main
+  with:
+    component_name: jellyfish-notifications
+    component_id: "0412edae-fc75-4ff4-9bd4-8b5875513aeb"
+    version: ${{ needs.build.outputs.VERSION }}
+    smart_tests_build_name: ${{ needs.test.outputs.SMART_TESTS_BUILD_NAME }}
+    environment: squid-demo-3
+    release_name_prefix: "jelly"
+  secrets: inherit
+  vars: inherit
+```
+
+### Key Features
+
+#### 1. Smart Tests Integration
+- **Links E2E tests to component builds**: Smart Tests build name passed from test job to release
+- **Unified view**: CloudBees Unify shows which component build triggered which E2E tests
+- **Traceability**: Full test history linked to specific component versions
+
+#### 2. FIFO Queue Management
+- **Prevents concurrent releases**: Only one release can run at a time per environment
+- **Timestamp-based ordering**: Components queue in true creation order (not alphabetical)
+- **Works across prefixes**: Different component prefixes (jelly-, octopus-, kraken-) properly ordered
+
+**Problem Solved:** Previously, releases with different prefixes (e.g., `jelly-` vs `octopus-`) could start concurrently due to alphabetical comparison. Now uses actual creation timestamps for proper FIFO ordering.
+
+#### 3. Stuck Release Handling
+- **`ignore_releases` parameter**: Skip stuck releases that can't be closed/deleted in Unify
+- **Default configuration**: Currently ignoring known stuck release to prevent blocking
+- **Per-component override**: Can specify additional stuck releases per component if needed
+
+```yaml
+# Example: Override in release-generic.yaml
+ignore_releases:
+  type: string
+  required: false
+  default: "rel-test-sb--squid-demo-3-20260202-114850-23326"  # Known stuck release
+```
+
+#### 4. Release Evidence
+Each release generates deployment evidence with:
+- Component name, version, environment, and status
+- Release name, ID, and run ID
+- **Direct link to CloudBees Unify UI**: One-click navigation from workflow to release
+
+### Component Release Prefixes
+
+Each component uses a unique prefix for release names to enable easy identification:
+
+| Component | Prefix | Example Release Name |
+|-----------|--------|---------------------|
+| squid-ui | `squid-ui` | `squid-ui-squid-demo-3-20260210-...` |
+| jellyfish-notifications | `jelly` | `jelly-squid-demo-3-20260210-...` |
+| octopus-payments | `octopus` | `octopus-squid-demo-3-20260210-...` |
+| urchin-analytics | `urchin` | `urchin-squid-demo-3-20260210-...` |
+| manta-delivery | `manta` | `manta-squid-demo-3-20260210-...` |
+| cuttlefish-orders | `cuttle` | `cuttle-squid-demo-3-20260210-...` |
+| squid-recommendations | `recon` | `recon-squid-demo-3-20260210-...` |
+| clam-catalog | `clam` | `clam-squid-demo-3-20260210-...` |
+| nautilus-inventory | `nautilus` | `nautilus-squid-demo-3-20260210-...` |
+| kraken-auth | `kraken` | `kraken-squid-demo-3-20260210-...` |
+| barnacle-reviews | `barnacle` | `barnacle-squid-demo-3-20260210-...` |
+| codlocker-assets | `codlocker` | `codlocker-squid-demo-3-20260210-...` |
+
+### Rate Limit Management
+
+To avoid hitting CloudBees Unify API rate limits during development:
+- Most components have `triggerRelease` job disabled by default (`if: false`)
+- Releases are opt-in via workflow configuration change
+- Enables testing CI/CD without triggering releases on every commit
+
+**To enable releases:**
+```yaml
+triggerRelease:
+  if: ${{ cloudbees.scm.branch == 'main' }}  # Change from 'false' to this
+```
+
+### Implementation Details
+
+**Reusable Workflow:** `.cloudbees/workflows/release-generic.yaml`
+- Creates CloudBees Unify release via API
+- Manages queue checking and wait logic
+- Publishes release evidence with links
+- Handles Smart Tests build name propagation
+
+**Action Used:** `guru-actions/create_release@main`
+- Extracts creation timestamp from create response (prevents race conditions)
+- Implements FIFO queue with timestamp comparison
+- Filters ignored releases from queue checks
+- Generates markdown evidence reports
+
+For full implementation details, see `.cloudbees/workflows/release-generic.yaml` and `guru-actions/create_release`.
+
+---
+
 ## 📎 Related Docs
 
 Each service has its own README:
